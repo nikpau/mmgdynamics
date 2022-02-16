@@ -1,6 +1,7 @@
 import math
 from typing import Callable, Optional
 import matplotlib
+import json
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
@@ -92,9 +93,6 @@ def mmg_dynamics(t: np.ndarray, # Timestep
 
     # Lateral inflow velocity components to rudder
     v_R = U * gamma_R * beta_R
-
-    if water_depth is not None:
-        v_R *= (1+1.4*(p["d"]/water_depth)**3)
 
     # Longitudinal inflow velocity components to rudder
     if J == 0.0:
@@ -194,8 +192,7 @@ def mmg_dynamics(t: np.ndarray, # Timestep
     # In this simulation, since we simulate a river, 
     # the current only has a x component.
     # Flow speed in y0 direction is always 0
-    if False:
-    #if fl_vel is not None:
+    if fl_vel is not None:
     
         # Longitudinal velocity of current dependent on ship heading
         u_c = math.cos(psi) * fl_vel
@@ -278,11 +275,11 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
 
     # Correct for shallow water if a water depth is given. 
     # If none is given, open water with infinite depth is assumed
-    #if water_depth is not None:
-    #    params = shallow_water(params, water_depth)
+    if water_depth is not None:
+        params = shallow_water_hdm(params, water_depth)
 
     solution = solve_ivp(fun=dynamics,
-                         t_span=(0.00, float(sps)), # Calculate the system dynamics for this time span
+                         t_span=(float(0), float(sps)), # Calculate the system dynamics for this time span
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
                          args=(params, 
@@ -295,6 +292,8 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
                                mode,
                                r_params),
                          method="RK45",
+                         rtol = 1e-4,
+                         atol=1e-4,
                          **sol_options
                         )
 
@@ -307,31 +306,25 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
 
 # Correct the hydrodynamic derivatives for shallow water conditions.
 # Correction formulas come from https://doi.org/10.1016/j.oceaneng.2019.106679 (NOT WORKING)
-def shallow_water(v: dict, water_depth: float) -> dict:
+def shallow_water_hdm(v: dict, water_depth: float) -> dict:
     
     # Length, Beam (width), Draft, Block Coefficient
     L, B, d, Cb = v["Lpp"], v["B"], v["d"], v["C_b"]
     
-    h = water_depth
+    # Correction term would not make sense otherwise
+    if L > 80:
+        L = 80.
     
-    f = lambda h,n: 1/(1-h)**n - h
-    f_Yr = lambda h,a_1,a_2,a_3: 1+a_1*h+a_2*h**2+a_3*h**3
+    coef = (water_depth/d) - 1
     
-    # Non dimenionalize mass
-    m_dash = v["m"] / (v["rho"] * L**2 * d) 
-
-    m_plus_mx = v["m_x_dash"] + m_dash
+    mxshallow = (coef**1.3+3.77+1.14*(B/d)-0.233*(L/d)-3.43*Cb)/(coef**1.3)
+    myshallow = (coef**0.82+0.413+0.0320*(B/d)+0.129*(B/d)**2)/(coef**0.82)
+    Jzshallow = (coef**0.82+0.413+0.0192*(B/d)+0.00554*(B/d)**2)/(coef**0.82)
     
-    # Linear yaw derivative
-    a1 = -5.5*(Cb*B/d)**2 + 26*Cb*B/d - 31.5
-    a2 = 37*(Cb*B/d)**2 - 185*Cb*B/d + 230
-    a3 = -38*(Cb*B/d)**2 + 197*Cb*B/d - 250
-    v["Y_r_dash"] *= (f_Yr(h,a1,a2,a3) + m_plus_mx)
+    v["m_x_dash"] *= mxshallow
+    v["m_y_dash"] *= myshallow
+    v["J_z_dash"] *= Jzshallow
     
-    # N'r
-    n_Nr = -7.14*v["kappa"] + 1.5
-    v["N_r_dash"] *= (f(h,n_Nr))
-
     return v
 
 # Resistance coefficient
@@ -412,9 +405,10 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starb
     # res[1:] = y-coord
     res = np.zeros((3, time))
 
+    maxdeg = 20
     # 35/20=1.75
     delta_list = np.concatenate(
-        [np.array([0.]), np.linspace(0.00, 35, 20), np.full(time-20, 35)])
+        [np.array([0.]), np.linspace(0.00, maxdeg, 20), np.full(time-20, maxdeg)])
     #delta_list = np.full((time+1,),35.)
 
     if dir == "starboard":
@@ -442,10 +436,10 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starb
                         sps=1, 
                         nps_old=ivs[4], 
                         delta_old=delta_list[s],
-                        fl_vel=1.,
-                        water_depth=some_river["wd_avg"],
+                        fl_vel=None,
+                        water_depth=5.,
                         r_params=some_river,
-                        mode="river",
+                        mode="freeflow",
                         psi=psi)
 
         # Vel in x and y direction (m/s), angular turning rate (rad/s)
@@ -478,8 +472,10 @@ def plot_trajecory(t: list[np.ndarray], vessel: dict) -> None:
     for tr in t:
         plt.plot(tr[1]/vessel["Lpp"], tr[0]/vessel["Lpp"], linewidth=2.5)
 
+    # This is just for the arrows depicting the flow direction
+    # For now this is just added manually
     x,y=np.meshgrid(np.linspace(-5,5,20),np.linspace(-2,4,20))
-    u, v = 0,-1
+    u, v = 0,1
     plt.quiver(x,y,u,v, scale=100., width = 0.001, color="grey")
     plt.xlabel(r"$y_0/L$", fontsize=14)
     plt.ylabel(r"$x_0/L$", fontsize=14)
@@ -575,16 +571,34 @@ def plot_r(t: list[float]):
     #plt.savefig(PLOTDIR+"/"+"r.pdf")
     plt.show()
 
+# ------------------------------------------------------------------------------
+# TEST RANGE
+
 # Example river dict
 some_river = {
     "wd_avg": 14.,
     "B_K":    200.,
 }
 
+fully_loaded_GMS = {
+    "m": 3848.,
+    "d": 3.63,
+    "A_R":5.29,
+    "B": 11.45,
+    "Lpp":110,
+    "C_b": 0.9,
+    "t_P": 0.2,
+    "D_p": 1.6,
+    "eta": 0.960,
+    "w_P0": 0.4
+}
+
 # Some initial values
-ivs = np.array([5.0, 0.0, 0.0, 0.0, 3.5])
-vs = cvs.GMS1
-iters = 300
+ivs = np.array([5.0, 0.0, 0.0, 0.0, 5.0])
+vs = cvs.get_coef_dict(fully_loaded_GMS,1000)
+#vs = cvs.GMS1
+print(json.dumps(vs,sort_keys=True, indent=4))
+iters = 1000
 s = turning_maneuver(ivs, vs, iters, "starboard")
 p = turning_maneuver(ivs, vs, iters, "port")
 # z, l = zigzag_maneuver(ivs, vs, rise_time=10, max_deg=20)
