@@ -1,3 +1,4 @@
+import math
 
 # Dicts of tested and measured vessels. 
 # Data from Yoshimura, Yasuo, and Yumiko Masumoto. "Hydrodynamic database 
@@ -68,7 +69,7 @@ seiunmaru = {
     "a_H":          0.236 # Rudder force increase factor (Quadvlieg (2013))
 }
 
-# Großmotorschiff nach BAW Flottenstruktur Niederrhein
+# Großmotorschiff nach BAW Flottenstruktur Niederrhein (Leer)
 GMS1 = {
     "C_b":          0.9, # Block Coeffiient
     "Lpp":          110.0, # Length over pependiculars (m)/
@@ -117,7 +118,7 @@ GMS1 = {
     "N_vvr_dash":  -0.614, # Hull derivatives (Yoshimura and Masumoto (2012))
     "N_vrr_dash":   0.014, # Hull derivatives (Yoshimura and Masumoto (2012))
     "N_rrr_dash":  -0.0326, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "I_zG":         5_592_680_500, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
+    "I_zG":         1_398_170_125.0,# 5_592_680_500, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
     "a_H":          0.4113 # Rudder force increase factor (Quadvlieg (2013))
     
 }
@@ -227,3 +228,117 @@ kvlcc2_full = {
     "J_z_dash":     0.011, # Added moment of inertia coefficient
     "a_H":          0.312 # Rudder force increase factor
 }
+
+# In here all the important hydrodynamic derivatives are calculated via empirical
+# formulas from Suras and Sakir Bal (2019)
+def get_coef_dict(v: dict, rho: float) -> dict:
+
+    # Length, Breadth, draft, Block coef, mass, Rudder area
+    mininfo = ["B","Lpp","d","C_b","m","A_R"]
+
+    if not all (k in v for k in mininfo):
+        raise KeyError(f"Mandatory keys not found. Need at least ['B','Lpp','d','C_b','A_R']")
+
+    # Unpack initial dict
+    L, B, d, Cb, m = v["Lpp"], v["B"], v["d"], v["C_b"], v["m"]
+
+    # X-Coordinate of the center of gravity (m)
+    if "x_G" not in v:
+        v["x_G"] = float(0)
+
+    # X-Coordinate of the propeller (assumed as -0.5*Lpp)
+    v["x_P"] = -0.5*L
+
+    # Add current water density to dict
+    v["rho"]= rho
+
+    # Masses and Moment of Intertia
+    nondim_M = 0.5 * v["rho"] * L**2 * d
+    nondim_N = 0.5 * v["rho"] * L**4 * d
+    v["m"]          = m * v["rho"] # Displacement * water density
+    v["I_zG"]       = v["m"] * (0.25*L)**2
+    v["m_x_dash"]   = 0.05*v["m"] / nondim_M
+    v["m_y_dash"]   = (0.882-0.54*Cb*(1-1.6*d/B)-0.156*(1-0.673*Cb)*L/B+\
+        0.826*((d*L)/(B**2))*(1-0.678*d/B)-0.638*Cb*((d*L)/(B**2))*(1-0.669*d/B))*v["m"] / nondim_M
+    v["J_z_dash"]   = ((0.01*(33-76.85*Cb*(1-0.784*Cb)+3.43*L/B*(1-0.63*Cb)))**2)*v["m"] / nondim_N
+
+    # Hydrodynamic derivatives
+    # Surge
+    v["X_vv_dash"]  = 1.15*(Cb/(L/B)) - 0.18 # Yoshimura and Masumoto (2012)
+    v["X_vvvv_dash"]= -6.68*(Cb/(L/B)) + 1.1 # Yoshimura and Masumoto (2012)
+    v["X_rr_dash"]  = (-0.0027+0.0076*Cb*d/B)*L/d # Lee et al. (1998)
+    v["X_vr_dash"]  = v["m_y_dash"] - 1.91*(Cb/(L/B)) + 0.08 # Yoshimura and Masumoto (2012)
+
+    # Sway
+    v["Y_v_dash"]   = -(0.5*math.pi*(2*d/L)+1.4*(Cb/(L/B))) # Yoshimura and Masumoto (2012)
+    v["Y_vvv_dash"] = -0.185*L/B + 0.48 # Yoshimura and Masumoto (2012)
+    v["Y_r_dash"]   = v["m_x_dash"] + 0.5*Cb*B/L # Yoshimura and Masumoto (2012)
+    v["Y_rrr_dash"] = -0.051
+    v["Y_vrr_dash"] = -(0.26*(1-Cb)*L/B + 0.11)
+    v["Y_vvr_dash"] = -0.75 # TODO: Change this
+
+    # Yaw
+    v["N_v_dash"]   = -2*d/L # Yoshimura and Masumoto (2012)
+    v["N_vvv_dash"] = -(-0.69*Cb+0.66)# Yoshimura and Masumoto (2012)
+    v["N_r_dash"]   = -0.54*(2*d/L) + (2*d/L)**2  # Yoshimura and Masumoto (2012)
+    v["N_rrr_dash"] = ((0.25*Cb)/(L/B))-0.056 # Yoshimura and Masumoto (2012)
+    v["N_vrr_dash"] = -0.075*(1-Cb)*L/B-0.098 # Yoshimura and Masumoto (2012)
+    v["N_vvr_dash"] = ((1.55*Cb)/(L/B))-0.76 # Yoshimura and Masumoto (2012)
+
+    # Wake coefficient 
+    if "w_P0" not in v:
+        v["w_P0"] = 0.5*Cb - 0.05
+
+    # Thrust deduction factor
+    if "t_P" not in v:
+        v["t_P"] = -0.27
+
+    # Rudder force incease factor
+    v["a_H"] = 0.627*Cb-0.153 # Quadvlieg (2013)
+
+    # Longituinal acting point of longitudinal force
+    v["x_H_dash"] = -0.45 # Aoki et. al. (2006)
+
+    # Steering resistance deduction factor
+    v["t_R"] = 0.39 # Yoshimura and Masumoto (2012)
+
+    # Espilon [Lee and Shin (1998)]
+    #v["epsilon"] = -2.3281+8.697*Cb-3.78*((2*d)/L)+1.19*Cb**2+292*((2*d)/L)**2-81.51*Cb*((2*d)/L) # Lee and Shin (1998)
+    #v["epsilon"] = -156.5*(Cb*B/L)**2 + 41.6*(Cb*B/L) - 1.76 # Kijima (1990)
+    v["epsilon"] = 2.26*1.82*(1-v["w_P0"]) # Yoshimura and Masumoto (2012)
+
+    # Kappa
+    v["kappa"] = 0.55-0.8*Cb*B/L
+
+    # Correction of flow straightening factor to yaw-rate
+    v["l_R"] = -0.9 # Yoshimura and Masumoto (2012)
+
+    # Flow straightening coefficient
+    v["gamma_R"] = 2.06*Cb*B/L+0.14
+
+    # Additional assumptions 
+    v["J_int"] = 0.4
+    v["k_0"] = 0.4
+    v["J_slo"] = -0.5
+
+    # Rudder aspect ratio
+    if "f_alpha" not in v:
+        while True:
+            asp = input("No rudder aspect ratio found. Please enter manually: ")
+            try:
+                asp = float(asp)
+                break
+            except ValueError as e:
+                print("Wrong input type. Only float or int allowed. Err:",e)
+        
+        asp = float(asp)
+        falpha =(6.13*asp)/(asp+2.25)
+        v["f_alpha"] = falpha
+
+        print(f"Aspect ration saved. Rudder lift coef calculated to be {falpha}")
+
+    # Frictional resistance coefficent [ARBITRARY, no calculations so far]
+    v["R_0_dash"] = 0.015
+
+    return v
+
