@@ -303,9 +303,9 @@ def get_coef_dict(v: dict, rho: float) -> dict:
     v["t_R"] = 0.39 # Yoshimura and Masumoto (2012)
 
     # Espilon [Lee and Shin (1998)]
-    #v["epsilon"] = -2.3281+8.697*Cb-3.78*((2*d)/L)+1.19*Cb**2+292*((2*d)/L)**2-81.51*Cb*((2*d)/L) # Lee and Shin (1998)
+    v["epsilon"] = -2.3281+8.697*Cb-3.78*((2*d)/L)+1.19*Cb**2+292*((2*d)/L)**2-81.51*Cb*((2*d)/L) # Lee and Shin (1998)
     #v["epsilon"] = -156.5*(Cb*B/L)**2 + 41.6*(Cb*B/L) - 1.76 # Kijima (1990)
-    v["epsilon"] = 2.26*1.82*(1-v["w_P0"]) # Yoshimura and Masumoto (2012)
+    #v["epsilon"] = 2.26*1.82*(1-v["w_P0"]) # Yoshimura and Masumoto (2012)
 
     # Kappa
     v["kappa"] = 0.55-0.8*Cb*B/L
