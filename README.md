@@ -8,7 +8,7 @@ In here you find an implementation of the [MMG standard model](https://doi.org/1
 
 #### Please use the stable version on the [stable branch](https://github.com/nikpau/mmgdynamics/tree/stable)
 
-The dynamics of the system can be found in the `dynamics.py` file. The model can be used straight out of the box with any model found in the `calibrated_vessels.py` file. If you want to embed this model into your own framework you just need the `mmg_step()` function.
+The dynamics of the system can be found in the `dynamics.py` file. The model can be used straight out of the box with any vessel found in the `calibrated_vessels.py` file. If you want to embed this model into your own framework you just need the `mmg_step()` function.
 
 ### Calibrate custom vessel
 In order to calibrate a vessel that is not present in the `calibrated_vessels.py` file, you can define a minimal dict with basic information about the vessel and input it into the `get_coef_dict()` function. Several empirical formulas will then be used to estimate the relevant hydrodynamic derivatives for your vessel and return back a dict which can be used as an input to the `mmg_step()` function. 
