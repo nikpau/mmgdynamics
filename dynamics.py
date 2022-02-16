@@ -9,6 +9,7 @@ from scipy.misc import derivative
 import matplotlib
 import matplotlib.pyplot as plt
 import calibrated_vessels as cvs
+import crossflow as cf
 
 """
 Set up the System of ODEs for vessel maneuvering prediction after 
@@ -376,7 +377,7 @@ def C_1c(psi: float, S:float, fl_vel: float, p: dict) -> float:
 def C_2c(psi: float, p: dict) -> float:
     
     L, B, d, Cb = p["Lpp"], p["B"], p["d"], p["C_b"]
-    C_y = 0.6 # Fig 1 in https://doi.org/10.1016/S0141-1187(98)00002-9
+    C_y = cf.interpolateY(B/(2*d),cf.cross_flow) # Fig 1 in https://doi.org/10.1016/S0141-1187(98)00002-9
     
     val1 = (C_y - (np.pi*d/(2*L))) * math.sin(psi)*abs(math.sin(psi)) + (np.pi*d/(2*L))*(math.sin(psi)**3)
     val2 = (np.pi*d/L)*(1+0.4*Cb*B/d)*math.sin(psi)*abs(math.cos(psi))
@@ -386,7 +387,7 @@ def C_2c(psi: float, p: dict) -> float:
 def C_6c(psi: float, p: dict) -> float:
     
     L, B, d, x_G = p["Lpp"], p["B"], p["d"], p["x_G"]
-    C_y = 0.6
+    C_y = cf.interpolateY(B/(2*d),cf.cross_flow)
     
     val1 = -x_G/L*(C_y - (np.pi*d/(2*L)))* math.sin(psi)*abs(math.sin(psi))
     val2 = np.pi*d/L*math.sin(psi) * math.cos(psi)
@@ -436,8 +437,8 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starb
                         sps=1, 
                         nps_old=ivs[4], 
                         delta_old=delta_list[s],
-                        fl_vel=None,
-                        water_depth=5.,
+                        fl_vel=1.,
+                        water_depth=None,
                         r_params=some_river,
                         mode="freeflow",
                         psi=psi)
