@@ -34,4 +34,6 @@ This model currently only implements currents in x-direction seen from the globa
 
 ##### Note: If you do not use currents, please set `fl_vel = None` in the `mmg_step()` function as zero-valued currents can not be handled at the moment.
 
+## Examples
 
+You can find common test cases for vessel maeuvering such as the ZigZag or turning maneuver test in the `example.py` file. In there you also find the definition and use of the minimal dict from above.
