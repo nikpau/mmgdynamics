@@ -232,6 +232,22 @@ kvlcc2_full = {
 # In here all the important hydrodynamic derivatives are calculated via empirical
 # formulas from Suras and Sakir Bal (2019)
 def get_coef_dict(v: dict, rho: float) -> dict:
+    """Calculate relevant hydrodynamic derivatives based on a minimal
+    dict and a given water density
+
+    Sources:
+        Suras and Sakir Bal (2019)
+
+    Args:
+        v (dict): Minimal dict of vessel parameters
+        rho (float): water density
+
+    Raises:
+        KeyError: If your dict is incomplete, calculations will be aborted
+
+    Returns:
+        dict: Dict with all relevant information to in used as input in the mmg_step() function
+    """
 
     # Length, Breadth, draft, Block coef, mass, Rudder area
     mininfo = ["B","Lpp","d","C_b","m","A_R"]
