@@ -45,19 +45,19 @@ ivs = np.array([5.0, # Longitudinal vessel speed [m/s]
                )
 
 # Vessel parameter dictionary calculated from minimal dict
-vs = cvs.get_coef_dict(fully_loaded_GMS,1000)
+#vs = cvs.get_coef_dict(fully_loaded_GMS,1000)
 
 # Uncomment next line to use a pre-calibrated vessel
-#vs = cvs.GMS1
+vs = cvs.GMS1
 
 # Print the vessel dict to output
 print(json.dumps(vs,sort_keys=True, indent=4))
 
 
-iters = 1000
+iters = 600
 s = turning_maneuver(ivs, vs, iters, "starboard")
-p = turning_maneuver(ivs, vs, iters, "starboard", water_depth=6.)
-z, l = zigzag_maneuver(ivs, vs, rise_time=10, max_deg=20)
+p = turning_maneuver(ivs, vs, iters, "starboard", water_depth=150.)
+z, l = zigzag_maneuver(ivs, vs, rise_time=30, max_deg=20)
 
 plot_trajecory([s, p], vs)
 plot_r(p)

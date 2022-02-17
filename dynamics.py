@@ -37,8 +37,6 @@ def mmg_dynamics(t: np.ndarray, # Timestep
                  fl_vel: float, # Velocity of current [m/s]
                  nps_old: float, # propeller rotation last timestep [s⁻¹]
                  delta_old: float, # rudder angle last timestep [rad]
-                 water_depth: Optional[float] = None, # Water depth at current timestep [m]
-                 r_params: Optional[dict] = None # River dict
                  ) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
     for the MMG standard model
@@ -65,8 +63,6 @@ def mmg_dynamics(t: np.ndarray, # Timestep
 
     # Shorten the parameter dict to avoid clutter
     p = params
-    if r_params is not None:
-        rp = r_params
 
     # u: long vel, v:lat. vel, r:yaw rate (d_psi/dt),delta: rudder angle, nps: propeller revs per second
     u, v, r, delta, nps = X
@@ -263,7 +259,6 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
               psi: float, # Yaw angle [rad]
               fl_vel: Optional[float] = None, # Fluid velocity (Current velocity)
               water_depth: Optional[float] = None, # Water depth if vessel is simulated in shallow water
-              r_params: Optional[dict] = None, # Parameter dict for river 
               debug: bool = False, # Print all intermediate time steps of the solver
               **sol_options # Additional options (see help(solve_ivp))
               ):
@@ -280,11 +275,10 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
                          args=(params if water_depth is None else sh_params, # Order is important! Do not change
                                sps, psi,fl_vel, 
-                               nps_old, delta_old,
-                               water_depth,r_params),
+                               nps_old, delta_old),
                          method="RK45",
-                         rtol = 1e-4,
-                         atol=1e-4,
+                         rtol = 1e-5,
+                         atol=1e-5,
                          **sol_options
                         )
 
@@ -295,19 +289,28 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
     # Just return the relevant derivatives
     return solution.y
 
-# Correct the hydrodynamic derivatives for shallow water conditions.
-# Correction formulas come from https://doi.org/10.1016/j.oceaneng.2019.106679 (NOT WORKING)
+
 def shallow_water_hdm(v: dict, water_depth: float) -> None:
+    """Correct the hydrodynamic derivatives and
+    hydrodynamic masses for shallow water conditions.
+    
+    Sources:
+        Tang et. al (2020) https://doi.org/10.1016/j.oceaneng.2019.106679
+        Furukawa et. al. (2016) https://dx.doi.org/10.18451/978-3-939230-38-0_33
+        
+
+    Args:
+        v (dict): vessel parameter dict
+        water_depth (float): water depth around vessel [m]
+    """
     
     # Length, Beam (width), Draft, Block Coefficient
     L, B, d, Cb = v["Lpp"], v["B"], v["d"], v["C_b"]
     
     h = water_depth
     
-    k = (2*d)/L
-    
     # Shallow water adaption for longitudinal hydrodynamic derivatives
-    # Source: https://dx.doi.org/10.18451/978-3-939230-38-0_33
+    # Source: Furukawa et. al. (2016)
     v["X_vv_dash"]  *= -70.8*(d/h)**4 + 27.7*(d/h)**2 + 1
     v["X_vr_dash"]  *= 1.3*(d/h)**2 + 1
     
@@ -316,6 +319,7 @@ def shallow_water_hdm(v: dict, water_depth: float) -> None:
     
     
     # Correction by Tang et al 2020
+    k = (2*d)/L
     k_e = lambda q: k/(d/(2*h) + ((np.pi*d)/(2*h) * 1/math.tan((np.pi*d)/(2*h)))**q)
     
     v["Y_v_dash"] = -(0.5*np.pi*k_e(2.3)+1.4*Cb*B/L)
@@ -336,7 +340,13 @@ def shallow_water_hdm(v: dict, water_depth: float) -> None:
     oneminuswp *= math.cos(1.4*Cb*d/h)
     v["w_P0"] = -oneminuswp + 1
     
-    v["gamma_R"] *= 1 + 0.0161*(d/h) + 4.4222*(d/h)**2 - 4.9825*(d/h)**3
+    # Flow-straightening coefficient
+    flow_str_coef = 1 + 0.0161*(d/h) + 4.4222*(d/h)**2 - 4.9825*(d/h)**3
+    if all(k in v for k in ["gamma_R_minus","gamma_R_plus"]):
+        v["gamma_R_minus"] *= flow_str_coef
+        v["gamma_R_plus"]  *= flow_str_coef
+    else:
+        v["gamma_R"] *= flow_str_coef
     
     
     # Correction term would not make sense otherwise
@@ -353,32 +363,6 @@ def shallow_water_hdm(v: dict, water_depth: float) -> None:
     v["m_y_dash"] *= myshallow
     v["J_z_dash"] *= Jzshallow
 
-# Resistance coefficient
-def getcw(d: float, h: float) -> float:
-
-    cw0, cw1, cw2 = 0.1, 0.2, 2
-    cw = cw0 + cw1*(d/h)**cw2
-    
-    return cw
-
-def getvr(rp: dict, p: dict, U: float, psi: float, fl_vel: float, h: float) -> float:
-    
-    vsdw = U - math.cos(psi) * fl_vel
-    
-    ccr = 0.8
-    A_S = p["B"] * p["d"]
-    A_K = rp["B_K"] * rp["wd_avg"]
-    
-    vcr = 0.58 * ccr * math.sqrt(GRAVITY * h) * (A_K / A_S - 1)**(1/8)
-    
-    s = (vsdw/vcr)**3 * math.sqrt(p["d"]/h)
-
-    A_V = A_S + s * p["B"] # TODO: Impl the effective width of the vessel here (Plane intersecting a cuboid)
-    
-    vr = vsdw * (A_V /(A_K - A_V)) # Check if A_K is really correct here
-
-    return vr
-    
     
 # Get the hydrodynamic coefficients due to currents. Sources: 
 def C_1c(psi: float, S:float, fl_vel: float, p: dict) -> float:
