@@ -1,12 +1,10 @@
-# MMG Standard model with extensions for currents
+# MMG Standard model with extensions for currents and shallow water
 
 
 In here you find an implementation of the [MMG standard model](https://doi.org/10.1007/s00773-014-0293-y) by Yasukawa, H., Yoshimura, Y. (2015).
 
 ## Dynamics
 
-
-#### Note: Shallow water adaption is currently not working.
 
 The dynamics of the system can be found in the `dynamics.py` file. The model can be used straight out of the box with any vessel found in the `calibrated_vessels.py` file. If you want to embed this model into your own framework you just need the `mmg_step()` function.
 
