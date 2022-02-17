@@ -101,7 +101,7 @@ GMS1 = {
     "m_x_dash":     0.009, # Added masses in x direction (m*0.05)(Clarke et. al.(1983))
     "m_y_dash":     0.0423, # Added mass in y direction (m*0.2261) (Zhou et. al.(1983))
     "J_z_dash":     1.121e-6,# Added moment of inertia (m* 0.0724) (Zhou et. al.(1983))
-    "R_0_dash":     0.016, # frictional resistance coefficient TODO Estimate this via Schoenherr's formula
+    "R_0_dash":     0.036, # frictional resistance coefficient TODO Estimate this via Schoenherr's formula
     "X_vv_dash":   -0.0723, # Hull derivatives (Yoshimura and Masumoto (2012))
     "X_vr_dash":   -0.0566, # Hull derivatives (Yoshimura and Masumoto (2012))
     "X_rr_dash":   -0.116, # Hull derivatives (Yoshimura and Masumoto (2012))
@@ -354,7 +354,7 @@ def get_coef_dict(v: dict, rho: float) -> dict:
         print(f"Aspect ration saved. Rudder lift coef calculated to be {falpha}")
 
     # Frictional resistance coefficent [ARBITRARY, no calculations so far]
-    v["R_0_dash"] = 0.015
+    v["R_0_dash"] = 0.025
 
     return v
 

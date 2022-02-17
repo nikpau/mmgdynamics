@@ -56,9 +56,9 @@ print(json.dumps(vs,sort_keys=True, indent=4))
 
 iters = 1000
 s = turning_maneuver(ivs, vs, iters, "starboard")
-p = turning_maneuver(ivs, vs, iters, "port")
+p = turning_maneuver(ivs, vs, iters, "starboard", water_depth=6.)
 z, l = zigzag_maneuver(ivs, vs, rise_time=10, max_deg=20)
 
 plot_trajecory([s, p], vs)
-plot_r(s)
+plot_r(p)
 plot_zigzag(z, l)

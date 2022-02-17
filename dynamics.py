@@ -1,7 +1,6 @@
 import math
 from typing import Callable, Optional
-import matplotlib
-import json
+import copy
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
@@ -39,7 +38,6 @@ def mmg_dynamics(t: np.ndarray, # Timestep
                  nps_old: float, # propeller rotation last timestep [s⁻¹]
                  delta_old: float, # rudder angle last timestep [rad]
                  water_depth: Optional[float] = None, # Water depth at current timestep [m]
-                 mode: str = "freeflow", # "river" or "freeflow"
                  r_params: Optional[dict] = None # River dict
                  ) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
@@ -139,39 +137,16 @@ def mmg_dynamics(t: np.ndarray, # Timestep
         F_N = 0.5 * p["A_R/Ld_em"] * (p["Lpp"]*p["d"]*p["rho"]) * \
             p["f_alpha"] * (U_R**2) * math.sin(alpha_R)
 
-    # For river mode the longitudinal force on the ship hull is 
-    # calculated according to the BAW FaRAO Model. TODO: Can this be disclosed?
-    if mode == "river":
-        assert rp is not None and water_depth is not None, "Please supply water depth and river property dict."
 
-        # Hull resistance due to Pressure and surface friction due to fuselage flows
-        cw = getcw(p["d"], water_depth)
-        A_S = p["B"] * p["d"] * p["C_b"] # Main frame cross sectional area
-        v_str = math.cos(psi) * fl_vel # Fluid velocity component in longitudinal direction 
-        
-        F_U = 0.5 * p["rho"] * cw * A_S * v_str**2
-        
-        # Hull resistance between ship hull and river ground (is this true?)
-        O_S = (p["B"] + 2*p["d"]) * p["C_b"]
-        lambda_s = 4*(1.89-1.62*(p["k_s"]/p["Lpp"]))**(-2.5)
-        vr = getvr(rp,p,U,psi,fl_vel,water_depth)
-        
-        F_R = O_S * p["rho"] * (lambda_s/8) * (v_str - vr)**2
-        
-        X_H = F_R + F_U 
-    
-    elif mode == "freeflow":
-        # Longitudinal surge force around midship acting on ship hull
-        X_H = (0.5 * p["rho"] * p["Lpp"] * p["d"] * (U**2) * (
-            - p["R_0_dash"]
-            + p["X_vv_dash"] * (v_dash**2)
-            + p["X_vr_dash"] * v_dash * r_dash
-            + p["X_rr_dash"] * (r_dash**2)
-            + p["X_vvvv_dash"] * (v_dash**4)
-        )
-        )
-    else:
-        raise RuntimeError("Mode string could not be matched. Avail. options: ['river','freeflow'].")
+    # Longitudinal surge force around midship acting on ship hull
+    X_H = (0.5 * p["rho"] * p["Lpp"] * p["d"] * (U**2) * (
+        - p["R_0_dash"]
+        + p["X_vv_dash"] * (v_dash**2)
+        + p["X_vr_dash"] * v_dash * r_dash
+        + p["X_rr_dash"] * (r_dash**2)
+        + p["X_vvvv_dash"] * (v_dash**4)
+    )
+    )
 
     # Longitudinal surge force around midship by steering
     X_R = -(1 - p["t_R"]) * F_N * math.sin(delta)
@@ -288,7 +263,6 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
               psi: float, # Yaw angle [rad]
               fl_vel: Optional[float] = None, # Fluid velocity (Current velocity)
               water_depth: Optional[float] = None, # Water depth if vessel is simulated in shallow water
-              mode: str = "river", # River or freeflow mode
               r_params: Optional[dict] = None, # Parameter dict for river 
               debug: bool = False, # Print all intermediate time steps of the solver
               **sol_options # Additional options (see help(solve_ivp))
@@ -297,16 +271,17 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
     # Correct for shallow water if a water depth is given. 
     # If none is given, open water with infinite depth is assumed
     if water_depth is not None:
-        params = shallow_water_hdm(params, water_depth)
+        sh_params = copy.deepcopy(params) # params is just a pointer to the underlying array. But we need a new one
+        shallow_water_hdm(sh_params, water_depth)
 
     solution = solve_ivp(fun=dynamics,
                          t_span=(float(0), float(sps)), # Calculate the system dynamics for this time span
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
-                         args=(params, # Order is important! Do not change
+                         args=(params if water_depth is None else sh_params, # Order is important! Do not change
                                sps, psi,fl_vel, 
-                               nps_old, delta_old,water_depth,
-                               mode,r_params),
+                               nps_old, delta_old,
+                               water_depth,r_params),
                          method="RK45",
                          rtol = 1e-4,
                          atol=1e-4,
@@ -322,14 +297,51 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
 
 # Correct the hydrodynamic derivatives for shallow water conditions.
 # Correction formulas come from https://doi.org/10.1016/j.oceaneng.2019.106679 (NOT WORKING)
-def shallow_water_hdm(v: dict, water_depth: float) -> dict:
+def shallow_water_hdm(v: dict, water_depth: float) -> None:
     
     # Length, Beam (width), Draft, Block Coefficient
     L, B, d, Cb = v["Lpp"], v["B"], v["d"], v["C_b"]
     
+    h = water_depth
+    
+    k = (2*d)/L
+    
+    # Shallow water adaption for longitudinal hydrodynamic derivatives
+    # Source: https://dx.doi.org/10.18451/978-3-939230-38-0_33
+    v["X_vv_dash"]  *= -70.8*(d/h)**4 + 27.7*(d/h)**2 + 1
+    v["X_vr_dash"]  *= 1.3*(d/h)**2 + 1
+    
+    # Hull frictional resistance coefficient
+    v["R_0_dash"]   *= 0.388*(d/h)**2 + 1
+    
+    
+    # Correction by Tang et al 2020
+    k_e = lambda q: k/(d/(2*h) + ((np.pi*d)/(2*h) * 1/math.tan((np.pi*d)/(2*h)))**q)
+    
+    v["Y_v_dash"] = -(0.5*np.pi*k_e(2.3)+1.4*Cb*B/L)
+    v["Y_r_dash"] = 0.25*np.pi * k_e(0.7)
+    v["N_v_dash"] = -k_e(1.7)
+    v["N_r_dash"] = -(0.54*k_e(0.7) - k_e(0.7)**2)
+    
+    v["N_vvr_dash"] *= 1+6*(d/h)**2.5
+    v["N_vrr_dash"] *= 1+6*(d/h)**2.5
+    
+    # Thrust deduction factor
+    oneminustp = 1 - v["t_P"]
+    oneminustp *= 1/(1-0.2*(d/h) + 0.7295*(d/h)**2)
+    v["t_P"] = -oneminustp + 1
+    
+    # Wake fraction coefficient
+    oneminuswp = 1 - v["w_P0"]
+    oneminuswp *= math.cos(1.4*Cb*d/h)
+    v["w_P0"] = -oneminuswp + 1
+    
+    v["gamma_R"] *= 1 + 0.0161*(d/h) + 4.4222*(d/h)**2 - 4.9825*(d/h)**3
+    
+    
     # Correction term would not make sense otherwise
-    if L > 80:
-        L = 80.
+    if L > 60:
+        L = 70.
     
     coef = (water_depth/d) - 1
     
@@ -337,11 +349,9 @@ def shallow_water_hdm(v: dict, water_depth: float) -> dict:
     myshallow = (coef**0.82+0.413+0.0320*(B/d)+0.129*(B/d)**2)/(coef**0.82)
     Jzshallow = (coef**0.82+0.413+0.0192*(B/d)+0.00554*(B/d)**2)/(coef**0.82)
     
-    v["m_x_dash"] *= mxshallow
+    v["m_x_dash"] *= mxshallow 
     v["m_y_dash"] *= myshallow
     v["J_z_dash"] *= Jzshallow
-    
-    return v
 
 # Resistance coefficient
 def getcw(d: float, h: float) -> float:
@@ -439,7 +449,9 @@ def C_6c(psi: float, p: dict) -> float:
     return val1 - val2 - val3
 
 
-def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starboard", maxdeg: int=20) -> np.ndarray:
+def turning_maneuver(ivs: np.ndarray, vessel: dict, 
+                     time: int, dir: str = "starboard", 
+                     maxdeg: int=20, water_depth: float = None) -> np.ndarray:
     """
     Perform a turning maneuver for a given set 
     of inital values and a time horizon. 
@@ -505,9 +517,8 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starb
                         nps_old=ivs[4], 
                         delta_old=delta_list[s],
                         fl_vel=None,
-                        water_depth=None,
+                        water_depth=water_depth,
                         r_params=None,
-                        mode="freeflow",
                         psi=psi)
 
         # Vel in x and y direction (m/s), angular turning rate (rad/s)
@@ -626,7 +637,6 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int)
                         fl_vel=None,
                         water_depth=None,                        
                         r_params=None,
-                        mode="freeflow",
                         psi=psi)
 
         # Angular turning rate (rad/s)
