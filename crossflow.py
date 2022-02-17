@@ -67,9 +67,21 @@ cross_flow = {
           0.603975535168196,
           0.570336391437309]
 }
-# Interpolate continous function from table of values
-# The dict must be of form {"x": [x1,...,xn],"y": [y1,...,yn]}
+
 def interpolateY(x: float, vals: dict) -> float:
+    """Interpolate y values from a discrete function table
+
+    Args:
+        x (float): input value for which an interpolation shall be returned
+        vals (dict): Dictionary with discrete function values of form:
+                    {"x": [x1,...,xn],"y": [y1,...,yn]}
+    
+    Raises:
+        RuntimeError: Raised if input value is out of interpolation range
+
+    Returns:
+        float: Interpolated y value
+    """
     
     # Get x and y vals from the function to be interpolated
     func_x, func_y = vals["x"], vals["y"]

@@ -8,7 +8,6 @@ from scipy.interpolate import interp1d
 from scipy.misc import derivative
 import matplotlib
 import matplotlib.pyplot as plt
-import calibrated_vessels as cvs
 import crossflow as cf
 
 """
@@ -40,9 +39,31 @@ def mmg_dynamics(t: np.ndarray, # Timestep
                  nps_old: float, # propeller rotation last timestep [s⁻¹]
                  delta_old: float, # rudder angle last timestep [rad]
                  water_depth: Optional[float] = None, # Water depth at current timestep [m]
-                 mode: str = "river", # "river" or "freeflow"
+                 mode: str = "freeflow", # "river" or "freeflow"
                  r_params: Optional[dict] = None # River dict
                  ) -> np.ndarray:
+    """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
+    for the MMG standard model
+
+    Args:
+        t (np.ndarray): time
+        X (np.ndarray): Initial values
+        params (dict):  Vessel dict 
+        sps (float): Seconds per timestep [-]
+        psi (float): Current heading angle [rad] (global coordinate system)
+        fl_vel (float): Velocity of current [m/s]
+        nps_old (float): propeller rotation last timestep [s⁻¹]
+        delta_old (float): rudder angle last timestep [rad]
+        water_depth (Optional[float]): Water depth at current timestep [m] .Defaults to None
+        mode (str):  Mode to calculcate. Either "river" or "freeflow". Defaults to "freeflow".
+        r_params (Optional[dict]): Optional River dict . Defaults to None.
+
+    Raises:
+        RuntimeError: If undefined mode was selected
+
+    Returns:
+        np.ndarray: Derivatives of the ODE for the current timestep (mostly for solver)
+    """
 
     # Shorten the parameter dict to avoid clutter
     p = params
@@ -210,8 +231,7 @@ def mmg_dynamics(t: np.ndarray, # Timestep
         S = (p["Lpp"] * p["B"] + 2*p["d"]*(p["Lpp"] + p["B"])) * p["C_b"]
         
         # Longitudinal current force
-        # X_C = 0.5 *p["rho"] * p["Lpp"] * p["d"] * U_c**2 * C_1c(aoa,S,fl_vel,p)
-        X_C = 0.
+        X_C = 0.5 *p["rho"] * p["Lpp"] * p["d"] * U_c**2 * C_1c(aoa,S,fl_vel,p)
 
         # Lateral current force
         Y_C = 0.5 *p["rho"] * p["Lpp"] * p["d"] * U_c**2 * C_2c(aoa,p)
@@ -283,15 +303,10 @@ def mmg_step(dynamics: Callable, # Dynamics to solve over time
                          t_span=(float(0), float(sps)), # Calculate the system dynamics for this time span
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
-                         args=(params, 
-                               sps, 
-                               psi,
-                               fl_vel, 
-                               nps_old, 
-                               delta_old,
-                               water_depth,
-                               mode,
-                               r_params),
+                         args=(params, # Order is important! Do not change
+                               sps, psi,fl_vel, 
+                               nps_old, delta_old,water_depth,
+                               mode,r_params),
                          method="RK45",
                          rtol = 1e-4,
                          atol=1e-4,
@@ -356,12 +371,22 @@ def getvr(rp: dict, p: dict, U: float, psi: float, fl_vel: float, h: float) -> f
     
     
 # Get the hydrodynamic coefficients due to currents. Sources: 
-# https://doi.org/10.1016/j.amc.2004.12.005
-# https://doi.org/10.1016/S0141-1187(98)00002-9
-# psi = Vessel yaw angle [rad]
-# S = Wetted surface area [m²]. Calculated as L*B + 2*d(L+B)
-# fl_vel = fluid velocity around vessel (current velocity)
 def C_1c(psi: float, S:float, fl_vel: float, p: dict) -> float:
+    """Longitudinal forces due to currents
+    
+    Sources:
+        https://doi.org/10.1016/j.amc.2004.12.005
+        https://doi.org/10.1016/S0141-1187(98)00002-9
+
+    Args:
+        psi (float): Angle of attack for current [rad]
+        S (float): Wetted surface area
+        fl_vel (float): fluid velocity (current velocity)
+        p (dict): parameter dict for vessel
+
+    Returns:
+        float: Non-dimensionalized longitudinal current force coef
+    """
     
     L, d, rho = p["Lpp"], p["d"], p["rho"]
     
@@ -374,7 +399,16 @@ def C_1c(psi: float, S:float, fl_vel: float, p: dict) -> float:
         
     return val 
 
-def C_2c(psi: float, p: dict) -> float:
+def C_2c(psi: float, p: dict) -> float:  
+    """Lateral forces due to currents
+
+    Args:
+        psi (float): Angle of attack for current [rad]
+        p (dict): parameter dict for vessel
+
+    Returns:
+        float: Non-dimensionalized lateral current force coef
+    """
     
     L, B, d, Cb = p["Lpp"], p["B"], p["d"], p["C_b"]
     C_y = cf.interpolateY(B/(2*d),cf.cross_flow) # Fig 1 in https://doi.org/10.1016/S0141-1187(98)00002-9
@@ -385,6 +419,15 @@ def C_2c(psi: float, p: dict) -> float:
     return val1 + val2
 
 def C_6c(psi: float, p: dict) -> float:
+    """Additional moment force due to currents
+
+    Args:
+        psi (float): Angle of attack for current [rad]
+        p (dict): parameter dict for vessel
+
+    Returns:
+        float: Non-dimensionalized moment current force coef
+    """
     
     L, B, d, x_G = p["Lpp"], p["B"], p["d"], p["x_G"]
     C_y = cf.interpolateY(B/(2*d),cf.cross_flow)
@@ -395,22 +438,46 @@ def C_6c(psi: float, p: dict) -> float:
     
     return val1 - val2 - val3
 
-# Calculate a trajectory for a given set of inital values and a time horizon (s)
-# The trajectory returns absolute x and y coordinates assuming the vessel started
-# at the origin
-# To reproduce https://doi.org/10.1007/s00773-014-0293-y the rudder steering
-# rate will be 1.75°/s (1.76 in the paper)
-def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starboard") -> np.ndarray:
+
+def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starboard", maxdeg: int=20) -> np.ndarray:
+    """
+    Perform a turning maneuver for a given set 
+    of inital values and a time horizon. 
+    The trajectory returns absolute x and 
+    y coordinates assuming the vessel started at the origin.
+    
+    To reproduce https://doi.org/10.1007/s00773-014-0293-y the rudder steering
+    rate has to be 1.75°/s (1.76 in the paper)
+
+    Args:
+        ivs (np.ndarray): Set of initial values
+        vessel (dict): vessel parameter dict
+        time (int): Time in [s] to reach the maximum rudder angle
+        dir (str, optional): Turning direction. Defaults to "starboard".
+        maxdeg (int, optional): Maximum rudder angle in degrees. Defaults to 20.
+
+    Raises:
+        Exception: Only if an invalid 'dir' was applied
+
+    Returns:
+        np.ndarray: Array of absolute x and y coordinates for the trajectory
+        
+    Note:
+        There is no option to input curent speeds at the moment
+        apart from hard-coding it into the function. Feel free to add the feature
+    """
 
     # res[0:] = x-coord
     # res[1:] = y-coord
     res = np.zeros((3, time))
 
-    maxdeg = 20
-    # 35/20=1.75
+    # If maxdeg is set to 35° you have approx
+    # 35°/20s=1.75°/s
     delta_list = np.concatenate(
-        [np.array([0.]), np.linspace(0.00, maxdeg, 20), np.full(time-20, maxdeg)])
-    #delta_list = np.full((time+1,),35.)
+        [np.array([0.]), 
+         np.linspace(0.00, maxdeg, 20), 
+         np.full(time-20, maxdeg)]
+        )
 
     if dir == "starboard":
         delta_list = delta_list * np.pi/180.
@@ -437,9 +504,9 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starb
                         sps=1, 
                         nps_old=ivs[4], 
                         delta_old=delta_list[s],
-                        fl_vel=1.,
+                        fl_vel=None,
                         water_depth=None,
-                        r_params=some_river,
+                        r_params=None,
                         mode="freeflow",
                         psi=psi)
 
@@ -467,6 +534,13 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict, time: int, dir: str = "starb
 
 
 def plot_trajecory(t: list[np.ndarray], vessel: dict) -> None:
+    """Plot trajecories 
+
+    Args:
+        t (list[np.ndarray]): List of ndarrays with list[n][0] being the x-coord
+        and list[n][1] the y coord of the trajectory
+        vessel (dict): parameter dict for vessel
+    """
 
     plt.figure(figsize=(16, 10))
 
@@ -486,7 +560,16 @@ def plot_trajecory(t: list[np.ndarray], vessel: dict) -> None:
     plt.show()
 
 
-def build_delta_zigzag(rise_time: int = 3, delta_max: float = 20.) -> np.ndarray:
+def build_delta_zigzag(rise_time: int = 20, delta_max: float = 20.) -> np.ndarray:
+    """Build a zigzag trajectory for the zigzag test. 
+
+    Args:
+        rise_time (int, optional): Time [s] for the rudder to reach 'delta_max'. Defaults to 20.
+        delta_max (float, optional): Maximum rudder angle in degrees. Defaults to 20.
+
+    Returns:
+        np.ndarray: Array of rudder angles per timestep, length of array
+    """
 
     # Init increase from 0 to delta max °
     init_inc = np.linspace(0, delta_max, rise_time)
@@ -510,6 +593,17 @@ def build_delta_zigzag(rise_time: int = 3, delta_max: float = 20.) -> np.ndarray
 
 
 def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int) -> np.ndarray:
+    """Perform ZigZag maneuver
+
+    Args:
+        ivs (np.ndarray): Set of inital values
+        vessel (dict): vessel parameter dict
+        max_deg (int): Maximum rudder angle in degrees (Passed to the build_delta_zigzag() function)
+        rise_time (int): Maximum rudder angle in degrees (Passed to the build_delta_zigzag() function)
+
+    Returns:
+        np.ndarray: Array of yaw angles for each timestep
+    """
 
     delta_list, len_list = build_delta_zigzag(
         rise_time=rise_time, delta_max=max_deg)
@@ -530,7 +624,9 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int)
                         nps_old=ivs[4], 
                         delta_old=delta_list[s],
                         fl_vel=None,
-                        water_depth=None,
+                        water_depth=None,                        
+                        r_params=None,
+                        mode="freeflow",
                         psi=psi)
 
         # Angular turning rate (rad/s)
@@ -571,39 +667,3 @@ def plot_r(t: list[float]):
     plt.grid(True)
     #plt.savefig(PLOTDIR+"/"+"r.pdf")
     plt.show()
-
-# ------------------------------------------------------------------------------
-# TEST RANGE
-
-# Example river dict
-some_river = {
-    "wd_avg": 14.,
-    "B_K":    200.,
-}
-
-fully_loaded_GMS = {
-    "m": 3848.,
-    "d": 3.63,
-    "A_R":5.29,
-    "B": 11.45,
-    "Lpp":110,
-    "C_b": 0.9,
-    "t_P": 0.2,
-    "D_p": 1.6,
-    "eta": 0.960,
-    "w_P0": 0.4
-}
-
-# Some initial values
-ivs = np.array([5.0, 0.0, 0.0, 0.0, 5.0])
-vs = cvs.get_coef_dict(fully_loaded_GMS,1000)
-#vs = cvs.GMS1
-print(json.dumps(vs,sort_keys=True, indent=4))
-iters = 1000
-s = turning_maneuver(ivs, vs, iters, "starboard")
-p = turning_maneuver(ivs, vs, iters, "port")
-# z, l = zigzag_maneuver(ivs, vs, rise_time=10, max_deg=20)
-
-plot_trajecory([s, p], vs)
-plot_r(s)
-#plot_zigzag(z, l)
