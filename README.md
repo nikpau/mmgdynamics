@@ -14,7 +14,7 @@ In order to calibrate a vessel that is not present in the `calibrated_vessels.py
 
 The empirical estimations need at least the following information:
 
-```
+```python
 my_vessel = {
   "m":        0.0, # Vessel displacement [m³]
   "B":        0.0, # Vessel Breadth (width)
