@@ -7,7 +7,7 @@ from scipy.interpolate import interp1d
 from scipy.misc import derivative
 import matplotlib
 import matplotlib.pyplot as plt
-import crossflow as cf
+import mmgdynamics.crossflow as cf
 
 """
 Set up the System of ODEs for vessel maneuvering prediction after 
