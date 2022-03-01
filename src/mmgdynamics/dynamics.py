@@ -1,11 +1,10 @@
 import math
-from typing import Callable, Optional
+from typing import Optional
 import copy
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
 from scipy.misc import derivative
-import matplotlib
 import matplotlib.pyplot as plt
 import mmgdynamics.crossflow as cf
 
@@ -19,8 +18,15 @@ On each step, the longituidal, lateral and yaw-rate accelerations are calculated
 from a set of initial conditions X for an arbitrary time horizon. 
 """
 
-# This is the only dynamic function we need to export really
-__all__ = ["mmg_step"]
+# Export only selected functions if used as wildcard import
+__all__ = [
+    "step", 
+    "turning_maneuver", 
+    "zigzag_maneuver", 
+    "plot_r", 
+    "plot_trajecory", 
+    "plot_zigzag"
+    ]
 
 # Plotting directory folder name
 PLOTDIR="maneuver_plots"
@@ -250,8 +256,7 @@ def mmg_dynamics(t: np.ndarray, # Timestep
 # Step function. Solve the mmg system of ODEs for one timestep
 # given a vessel and initial values
 # sps = seconds per step
-def step(dynamics: Callable, # Dynamics to solve over time
-         X: np.ndarray, # Initial values
+def step(X: np.ndarray, # Initial values
          params: dict, # Vessel dict
          sps: float, # Seconds to simulate per timestep
          nps_old: float, # propeller rotations/s last timestep 
@@ -269,7 +274,7 @@ def step(dynamics: Callable, # Dynamics to solve over time
         sh_params = copy.deepcopy(params) # params is just a pointer to the underlying array. But we need a new one
         shallow_water_hdm(sh_params, water_depth)
 
-    solution = solve_ivp(fun=dynamics,
+    solution = solve_ivp(fun=mmg_dynamics,
                          t_span=(float(0), float(sps)), # Calculate the system dynamics for this time span
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
