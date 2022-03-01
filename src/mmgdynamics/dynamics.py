@@ -191,7 +191,7 @@ def mmg_dynamics(t: np.ndarray, # Timestep
     # In this simulation, since we simulate a river, 
     # the current only has a x component.
     # Flow speed in y0 direction is always 0
-    if fl_vel is not None and fl_vel is not 0.:
+    if fl_vel is not None and fl_vel != 0.:
     
         # Longitudinal velocity of current dependent on ship heading
         u_c = math.cos(psi) * fl_vel
