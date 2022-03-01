@@ -271,6 +271,11 @@ def step(X: np.ndarray, # Initial values
     # Correct for shallow water if a water depth is given. 
     # If none is given, open water with infinite depth is assumed
     if water_depth is not None:
+        if water_depth < params["d"]:
+            raise LogicError(
+                "Water depth cannot be less than ship draft."
+                "Water depth:{} | Ship draft: {}".format(water_depth, params["d"])
+                )
         sh_params = copy.deepcopy(params) # params is just a pointer to the underlying array. But we need a new one
         shallow_water_hdm(sh_params, water_depth)
 
@@ -499,16 +504,15 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict,
         ivs[3] = delta_list[s+1]
 
         # Solve the ODE system for one second at a time
-        sol = step(mmg_dynamics, 
-                        X=ivs, 
-                        params=vessel, 
-                        sps=1, 
-                        nps_old=ivs[4], 
-                        delta_old=delta_list[s],
-                        fl_vel=None,
-                        water_depth=water_depth,
-                        r_params=None,
-                        psi=psi)
+        sol = step(X=ivs, 
+                   params=vessel, 
+                   sps=1, 
+                   nps_old=ivs[4], 
+                   delta_old=delta_list[s],
+                   fl_vel=None,
+                   water_depth=water_depth,
+                   r_params=None,
+                   psi=psi)
 
         # Vel in x and y direction (m/s), angular turning rate (rad/s)
         u, v, r, _, _ = sol
@@ -617,16 +621,15 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int)
         ivs[3] = delta_list[s+1]
 
         # Solve the ODE system for one second at a time
-        sol = step(mmg_dynamics, 
-                        X=ivs, 
-                        params=vessel, 
-                        sps=1, 
-                        nps_old=ivs[4], 
-                        delta_old=delta_list[s],
-                        fl_vel=None,
-                        water_depth=None,                        
-                        r_params=None,
-                        psi=psi)
+        sol = step(X=ivs, 
+                   params=vessel, 
+                   sps=1, 
+                   nps_old=ivs[4], 
+                   delta_old=delta_list[s],
+                   fl_vel=None,
+                   water_depth=None,                        
+                   r_params=None,
+                   psi=psi)
 
         # Angular turning rate (rad/s)
         _, _, r, _, _ = sol
@@ -666,3 +669,7 @@ def plot_r(t: list[float]):
     plt.grid(True)
     #plt.savefig(PLOTDIR+"/"+"r.pdf")
     plt.show()
+
+    
+class LogicError(Exception):
+    pass
