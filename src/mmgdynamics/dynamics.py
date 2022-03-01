@@ -250,18 +250,18 @@ def mmg_dynamics(t: np.ndarray, # Timestep
 # Step function. Solve the mmg system of ODEs for one timestep
 # given a vessel and initial values
 # sps = seconds per step
-def mmg_step(dynamics: Callable, # Dynamics to solve over time
-              X: np.ndarray, # Initial values
-              params: dict, # Vessel dict
-              sps: float, # Seconds to simulate per timestep
-              nps_old: float, # propeller rotations/s last timestep 
-              delta_old: float, # rudder angle last timestep
-              psi: float, # Yaw angle [rad]
-              fl_vel: Optional[float] = None, # Fluid velocity (Current velocity)
-              water_depth: Optional[float] = None, # Water depth if vessel is simulated in shallow water
-              debug: bool = False, # Print all intermediate time steps of the solver
-              **sol_options # Additional options (see help(solve_ivp))
-              ):
+def step(dynamics: Callable, # Dynamics to solve over time
+         X: np.ndarray, # Initial values
+         params: dict, # Vessel dict
+         sps: float, # Seconds to simulate per timestep
+         nps_old: float, # propeller rotations/s last timestep 
+         delta_old: float, # rudder angle last timestep
+         psi: float, # Yaw angle [rad]
+         fl_vel: Optional[float] = None, # Fluid velocity (Current velocity)
+         water_depth: Optional[float] = None, # Water depth if vessel is simulated in shallow water
+         debug: bool = False, # Print all intermediate time steps of the solver
+         **sol_options # Additional options (see help(solve_ivp))
+        ):
 
     # Correct for shallow water if a water depth is given. 
     # If none is given, open water with infinite depth is assumed
@@ -494,7 +494,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict,
         ivs[3] = delta_list[s+1]
 
         # Solve the ODE system for one second at a time
-        sol = mmg_step(mmg_dynamics, 
+        sol = step(mmg_dynamics, 
                         X=ivs, 
                         params=vessel, 
                         sps=1, 
@@ -612,7 +612,7 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int)
         ivs[3] = delta_list[s+1]
 
         # Solve the ODE system for one second at a time
-        sol = mmg_step(mmg_dynamics, 
+        sol = step(mmg_dynamics, 
                         X=ivs, 
                         params=vessel, 
                         sps=1, 
