@@ -54,11 +54,14 @@ vs = cvs.GMS1
 print(json.dumps(vs,sort_keys=True, indent=4))
 
 
+ZIGZAG: bool = False
+
 iters = 600
 s = turning_maneuver(ivs, vs, iters, "starboard")
 p = turning_maneuver(ivs, vs, iters, "starboard", water_depth=150.)
-z, l = zigzag_maneuver(ivs, vs, rise_time=30, max_deg=20)
-
 plot_trajecory([s, p], vs)
 plot_r(p)
-plot_zigzag(z, l)
+
+if ZIGZAG:
+    z, l = zigzag_maneuver(ivs, vs, rise_time=30, max_deg=20)
+    plot_zigzag(z, l)
