@@ -669,7 +669,7 @@ def plot_zigzag(t: list, delta_list: np.ndarray) -> None:
     plt.show()
 
 
-def plot_r(t: list[float]):
+def plot_r(t: List[float]):
     plt.figure(figsize=(16, 10))
     plt.plot(np.arange(len(t[2])), t[2], linewidth=2.5)
     plt.xlabel(r"$t(s)$", fontsize=14)
