@@ -7,7 +7,7 @@ from scipy.interpolate import interp1d
 from scipy.misc import derivative
 import matplotlib.pyplot as plt
 import mmgdynamics.crossflow as cf
-from typing import Any
+from typing import Any, List
 
 """
 Set up the System of ODEs for vessel maneuvering prediction after 
@@ -544,7 +544,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict,
     return res
 
 
-def plot_trajecory(t: list[np.ndarray], vessel: dict) -> None:
+def plot_trajecory(t: List[np.ndarray], vessel: dict) -> None:
     """Plot trajecories 
 
     Args:
