@@ -183,9 +183,6 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     N_R = -((-p["Lpp"]/2) + p["a_H"] * x_H) * F_N * math.cos(delta)
 
     # Forces related to currents:
-    # In this simulation, since we simulate a river, 
-    # the current only has a x component.
-    # Flow speed in y0 direction is always 0
     if fl_vel is not None and fl_vel != 0.:
     
         # Longitudinal velocity of current dependent on ship heading
