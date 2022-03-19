@@ -7,6 +7,7 @@ from scipy.interpolate import interp1d
 from scipy.misc import derivative
 import matplotlib.pyplot as plt
 import mmgdynamics.crossflow as cf
+from typing import Any
 
 """
 Set up the System of ODEs for vessel maneuvering prediction after 
@@ -35,15 +36,9 @@ PLOTDIR="maneuver_plots"
 GRAVITY: float = 9.81
 
 # System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
-def mmg_dynamics(t: np.ndarray, # Timestep
-                 X: np.ndarray, # Initial values
-                 params: dict, # Vessel dict 
-                 sps: float, # Seconds per timestep [-]
-                 psi: float, # Current heading angle [rad] (global coordinate system)
-                 fl_vel: float, # Velocity of current [m/s]
-                 nps_old: float, # propeller rotation last timestep [s⁻¹]
-                 delta_old: float, # rudder angle last timestep [rad]
-                 ) -> np.ndarray:
+def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict, 
+                 sps: float,fl_psi: float, fl_vel: float, 
+                 nps_old: float, delta_old: float,) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
     for the MMG standard model
 
@@ -52,7 +47,7 @@ def mmg_dynamics(t: np.ndarray, # Timestep
         X (np.ndarray): Initial values
         params (dict):  Vessel dict 
         sps (float): Seconds per timestep [-]
-        psi (float): Current heading angle [rad] (global coordinate system)
+        fl_psi (float): Attack angle of current relative to heading [rad]
         fl_vel (float): Velocity of current [m/s]
         nps_old (float): propeller rotation last timestep [s⁻¹]
         delta_old (float): rudder angle last timestep [rad]
@@ -194,10 +189,10 @@ def mmg_dynamics(t: np.ndarray, # Timestep
     if fl_vel is not None and fl_vel != 0.:
     
         # Longitudinal velocity of current dependent on ship heading
-        u_c = math.cos(psi) * fl_vel
+        u_c = math.cos(fl_psi) * fl_vel
 
         # Lateral velocity of current dependent on ship heading
-        v_c = math.sin(psi) * fl_vel
+        v_c = math.sin(fl_psi) * fl_vel
 
         U_c = math.sqrt((v_m - v_c)**2 + (u - u_c)**2)
 
@@ -253,27 +248,42 @@ def mmg_dynamics(t: np.ndarray, # Timestep
 
     return np.array([d_u, d_v, d_r, d_delta, d_nps])
 
-# Step function. Solve the mmg system of ODEs for one timestep
-# given a vessel and initial values
-# sps = seconds per step
-def step(X: np.ndarray, # Initial values
-         params: dict, # Vessel dict
-         sps: float, # Seconds to simulate per timestep
-         nps_old: float, # propeller rotations/s last timestep 
-         delta_old: float, # rudder angle last timestep
-         psi: float, # Yaw angle [rad]
-         fl_vel: Optional[float] = None, # Fluid velocity (Current velocity)
-         water_depth: Optional[float] = None, # Water depth if vessel is simulated in shallow water
-         debug: bool = False, # Print all intermediate time steps of the solver
+
+def step(X: np.ndarray,params: dict, sps: float, nps_old: float, 
+         delta_old: float, fl_psi: float, fl_vel: Optional[float] = None, 
+         water_depth: Optional[float] = None, debug: bool = False, 
          **sol_options # Additional options (see help(solve_ivp))
-        ):
+         )->Any:
+    """Solve the MMG system for a given vessel for an arbitrarily long timestep
+    
+    Args:
+        X (np.ndarray): Initial values
+        params (dict): Vessel dict
+        sps (float): Seconds to simulate per timestep
+        nps_old (float): propeller rotations [s⁻¹] last timestep
+        delta_old (float): rudder angle last timestep
+        fl_psi (float): Attack angle of current relative to heading [rad]
+        fl_vel (Optional[float]): Fluid velocity (Current velocity)
+        water_depth( Optional[float]): Water depth if vessel is simulated in shallow water
+        debug (bool): Print all intermediate time steps of the solver
+
+    Raises:
+        LogicError: If the waterdepth is less than the 
+        ships draft. Ship would run aground. It is recommended 
+        to have at least (1.2*draft) meters of water under the vessel
+
+    Returns:
+        Any: Solver output of two modes:
+            Normal: Return the result of the last solver timestep
+            Debug : Return also all intermediate solver values.
+    """
 
     # Correct for shallow water if a water depth is given. 
     # If none is given, open water with infinite depth is assumed
     if water_depth is not None:
         if water_depth < params["d"]:
             raise LogicError(
-                "Water depth cannot be less than ship draft."
+                "Water depth cannot be less than ship draft.\n"
                 "Water depth:{} | Ship draft: {}".format(water_depth, params["d"])
                 )
         sh_params = copy.deepcopy(params) # params is just a pointer to the underlying array. But we need a new one
@@ -284,7 +294,7 @@ def step(X: np.ndarray, # Initial values
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
                          args=(params if water_depth is None else sh_params, # Order is important! Do not change
-                               sps, psi,fl_vel, 
+                               sps, fl_psi,fl_vel, 
                                nps_old, delta_old),
                          method="RK45",
                          rtol = 1e-5,
@@ -374,7 +384,7 @@ def shallow_water_hdm(v: dict, water_depth: float) -> None:
     v["J_z_dash"] *= Jzshallow
 
     
-# Get the hydrodynamic coefficients due to currents. Sources: 
+# Get the hydrodynamic coefficients due to currents.
 def C_1c(psi: float, S:float, fl_vel: float, p: dict) -> float:
     """Longitudinal forces due to currents
     
@@ -559,6 +569,8 @@ def plot_trajecory(t: list[np.ndarray], vessel: dict) -> None:
     plt.xlabel(r"$y_0/L$", fontsize=14)
     plt.ylabel(r"$x_0/L$", fontsize=14)
     plt.title(r"Seiun Maru ($L=105m,B=18m$)$\pm 35^{\circ}$ turning maneuver | $U_0=5.0m/s (\approx 9.72kn), rpm=90$")
+    plt.axhline(y=0, color='r', linestyle='-')
+    plt.axvline(x=0, color='r', linestyle='-')
     plt.grid(True)
     #plt.savefig(PLOTDIR+"/"+"turning.pdf")
     plt.show()
