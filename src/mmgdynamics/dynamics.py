@@ -249,6 +249,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
 def step(X: np.ndarray,params: dict, sps: float, nps_old: float, 
          delta_old: float, fl_psi: float, fl_vel: Optional[float] = None, 
          water_depth: Optional[float] = None, debug: bool = False, 
+         atol: float = 1e-5, rtol: float = 1e-5,
          **sol_options # Additional options (see help(solve_ivp))
          )->Any:
     """Solve the MMG system for a given vessel for an arbitrarily long timestep
@@ -294,8 +295,8 @@ def step(X: np.ndarray,params: dict, sps: float, nps_old: float,
                                sps, fl_psi,fl_vel, 
                                nps_old, delta_old),
                          method="RK45",
-                         rtol = 1e-5,
-                         atol=1e-5,
+                         rtol = rtol,
+                         atol = atol,
                          **sol_options
                         )
 
