@@ -1,1 +1,2 @@
-# Empty file to make this folder into a package
+__version__ = "1.0.2"
+__author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
