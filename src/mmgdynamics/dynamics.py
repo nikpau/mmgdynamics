@@ -1,6 +1,7 @@
 import math
 from typing import Optional
 import copy
+from warnings import warn
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.interpolate import interp1d
@@ -232,24 +233,17 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     d_r = ((N_H + N_R + N_C) - (p["x_G"] * m * d_v + p["x_G"] * m * u * r)) / \
         (I_zG + J_z + (p["x_G"]**2) * m)
 
-    time_list = np.arange(sps+1)
-    # Change in rudder position
-    delta_list = np.linspace(delta_old, delta, num=int(sps)+1)
-    d_interpol = interp1d(time_list, delta_list, fill_value="extrapolate")
-    d_delta = derivative(d_interpol, t)
-
-    # Change in propeller revolutions
-    nps_list = np.linspace(nps_old, nps, num=int(sps)+1)
-    nps_interpol = interp1d(time_list, nps_list, fill_value="extrapolate")
-    d_nps = derivative(nps_interpol, t)
+    # Derivatives for delta and nps
+    d_delta = (delta - delta_old) * t
+    d_nps = (nps - nps_old) * t
 
     return np.array([d_u, d_v, d_r, d_delta, d_nps])
 
 
 def step(X: np.ndarray,params: dict, sps: float, nps_old: float, 
-         delta_old: float, fl_psi: float, fl_vel: Optional[float] = None, 
-         water_depth: Optional[float] = None, debug: bool = False, 
-         atol: float = 1e-5, rtol: float = 1e-5,
+         delta_old: float, fl_psi: Optional[float] = None, 
+         fl_vel: Optional[float] = None, water_depth: Optional[float] = None, 
+         debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5,
          **sol_options # Additional options (see help(solve_ivp))
          )->Any:
     """Solve the MMG system for a given vessel for an arbitrarily long timestep
@@ -276,6 +270,13 @@ def step(X: np.ndarray,params: dict, sps: float, nps_old: float,
             Debug : Return also all intermediate solver values.
     """
 
+    if fl_vel is not None and fl_psi is None:
+        raise LogicError("No current direction specified. "
+                         "Use the `fl_psi` keyword to set it.")
+    if fl_vel is None and fl_psi is not None:
+        warn("Current attack angle is given but current velocity is "
+             "turned off. Attack angle is ignored.")
+    
     # Correct for shallow water if a water depth is given. 
     # If none is given, open water with infinite depth is assumed
     if water_depth is not None:
