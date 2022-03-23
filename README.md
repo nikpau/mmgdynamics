@@ -16,7 +16,7 @@ The dynamics of the system can be found in the `dynamics.py` file. The model can
 
 ### Calibrate custom vessel
 
-In order to calibrate a vessel that is not present in the `calibrated_vessels.py` file, you can define a minimal dict with basic information about the vessel and input it into the `get_coef_dict()` function. Several empirical formulas will then be used to estimate the relevant hydrodynamic derivatives for your vessel and return back a dict which can be used as an input to the `step()` function.
+In order to calibrate a vessel that is not present in the `calibrated_vessels.py` file, you can define a minimal dict with basic information about the vessel and use `calibrate()` to make it usable in the `step()` function. Several empirical formulas will be used to estimate the relevant hydrodynamic derivatives for your vessel and return back a dict which can be used as an input to the `step()` function.
 
 #### Form of the dict:
 
@@ -31,7 +31,7 @@ my_vessel = {
   "t_P":      0.0, # Thrust deduction factor
   "D_p":      0.0, # Propeller Diameter
   "eta":      0.0, # Ratio of propeller diameter to rudder span
-  "f_alpha" : 0.0  # Rudder lift gradient coefficient 
+  "f_alpha":  0.0  # Rudder lift gradient coefficient 
                    # (If not given you will be asked for the rudder aspect ratio)
 }
 ```
