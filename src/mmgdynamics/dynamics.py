@@ -4,8 +4,6 @@ import copy
 from warnings import warn
 import numpy as np
 from scipy.integrate import solve_ivp
-from scipy.interpolate import interp1d
-from scipy.misc import derivative
 import matplotlib.pyplot as plt
 import mmgdynamics.crossflow as cf
 from typing import Any, List
@@ -31,15 +29,15 @@ __all__ = [
     ]
 
 # Plotting directory folder name
-PLOTDIR="maneuver_plots"
+PLOTDIR:str = "maneuver_plots"
 
 # Gravitational constant
 GRAVITY: float = 9.81
 
 # System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
 def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict, 
-                 sps: float,fl_psi: float, fl_vel: float, 
-                 nps_old: float, delta_old: float,) -> np.ndarray:
+                 fl_psi: float, fl_vel: float, nps_old: float,
+                 delta_old: float,) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
     for the MMG standard model
 
@@ -47,17 +45,12 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
         t (np.ndarray): time
         X (np.ndarray): Initial values
         params (dict):  Vessel dict 
-        sps (float): Seconds per timestep [-]
-        fl_psi (float): Attack angle of current relative to heading [rad]
+        fl_psi (float): Attack angle of current relative
+                        longitudinal axis of motion [rad]
         fl_vel (float): Velocity of current [m/s]
         nps_old (float): propeller rotation last timestep [s⁻¹]
         delta_old (float): rudder angle last timestep [rad]
         water_depth (Optional[float]): Water depth at current timestep [m] .Defaults to None
-        mode (str):  Mode to calculcate. Either "river" or "freeflow". Defaults to "freeflow".
-        r_params (Optional[dict]): Optional River dict . Defaults to None.
-
-    Raises:
-        RuntimeError: If undefined mode was selected
 
     Returns:
         np.ndarray: Derivatives of the ODE for the current timestep (mostly for solver)
@@ -78,12 +71,12 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
         v_dash = 0.0
         r_dash = 0.0
     else:
-        beta = np.arctan2(-v_m, u)  # Drift angle at midship position
-        v_dash = v_m / U  # Non-dimensionalized lateral velocity | TODO shouldn't this be v_m?
+        beta = math.atan2(-v_m, u)  # Drift angle at midship position
+        v_dash = v_m / U  # Non-dimensionalized lateral velocity
         r_dash = r * p["Lpp"] / U  # Non-dimensionalized yaw rate
 
     # Redefine
-    w_P = p["w_P0"] * np.exp(-4.0 * (beta - (p["x_P"]/p["Lpp"]) * r_dash)**2)
+    w_P = p["w_P0"] * math.exp(-4.0 * (beta - (p["x_P"]/p["Lpp"]) * r_dash)**2)
 
     if nps == 0.0:  # No propeller movement, no advance ratio
         J = 0.0
@@ -125,7 +118,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     U_R = math.sqrt(u_R**2 + v_R**2)
 
     # Rudder inflow angle
-    alpha_R = delta - np.arctan2(v_R, u_R)
+    alpha_R = delta - math.atan2(v_R, u_R)
 
     # Normal force on rudder
     if "A_R" in p:
@@ -195,7 +188,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
         U_c = math.sqrt((v_m - v_c)**2 + (u - u_c)**2)
 
         # Angle of attack for current
-        aoa = np.arctan2(v_m - v_c, u - u_c)
+        aoa = math.atan2(v_m - v_c, u - u_c)
         
         # Wetted surface area [m²]. Calculated as (L*B + 2*d(L+B))*
         S = (p["Lpp"] * p["B"] + 2*p["d"]*(p["Lpp"] + p["B"])) * p["C_b"]
@@ -240,7 +233,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     return np.array([d_u, d_v, d_r, d_delta, d_nps])
 
 
-def step(X: np.ndarray,params: dict, sps: float, nps_old: float, 
+def step(*, X: np.ndarray,params: dict, sps: float, nps_old: float, 
          delta_old: float, fl_psi: Optional[float] = None, 
          fl_vel: Optional[float] = None, water_depth: Optional[float] = None, 
          debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5,
@@ -260,9 +253,11 @@ def step(X: np.ndarray,params: dict, sps: float, nps_old: float,
         debug (bool): Print all intermediate time steps of the solver
 
     Raises:
-        LogicError: If the waterdepth is less than the 
-        ships draft. Ship would run aground. It is recommended 
-        to have at least (1.2*draft) meters of water under the vessel
+        LogicError: - If the waterdepth is less than the 
+                      ships draft. Ship would run aground. It is recommended 
+                      to have at least (1.2*draft) meters of water under the vessel.
+                    - If a current velocity has been set but no 
+                      attack angle for it. 
 
     Returns:
         Any: Solver output of two modes:
@@ -293,7 +288,7 @@ def step(X: np.ndarray,params: dict, sps: float, nps_old: float,
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
                          args=(params if water_depth is None else sh_params, # Order is important! Do not change
-                               sps, fl_psi,fl_vel, 
+                               fl_psi,fl_vel, 
                                nps_old, delta_old),
                          method="RK45",
                          rtol = rtol,
