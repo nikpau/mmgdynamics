@@ -1,3 +1,5 @@
+from typing import Dict
+
 # Fig 1 in https://doi.org/10.1016/S0141-1187(98)00002-9
 # Points have been digitalized using an online graph digitizer
 
@@ -36,8 +38,8 @@ cross_flow = {
           0.603975535168196,0.570336391437309]
 }
 
-def interpolateY(x: float, vals: dict) -> float:
-    """Interpolate y values from a discrete function table
+def interpolateY(x: float, vals: Dict[str,list]) -> float:
+    """Linear interpolation of y values from a discrete function table
 
     Args:
         x (float): input value for which an interpolation shall be returned
@@ -61,7 +63,8 @@ def interpolateY(x: float, vals: dict) -> float:
             break
     
     if "func_ind" not in locals():
-        raise RuntimeError(f"Value out of interpolation range. Choose a value between {min(func_x)} and {max(func_x)}")
+        raise RuntimeError(f"Value out of interpolation range. "
+                           f"Choose a value between {min(func_x)} and {max(func_x)}")
     
     # Define the two points to interpolate in between
     xa, xb = func_x[func_ind+1], func_x[func_ind]

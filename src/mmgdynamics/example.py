@@ -1,7 +1,12 @@
-import numpy as np
 import json
-from mmgdynamics.dynamics import turning_maneuver, plot_r, plot_trajecory, plot_zigzag, zigzag_maneuver
+import numpy as np
 import mmgdynamics.calibrated_vessels as cvs
+
+from mmgdynamics.dynamics import (
+    turning_maneuver, plot_r, 
+    plot_trajecory, plot_zigzag, 
+    zigzag_maneuver, calibrate
+)
 
 """In here you find some basic tests to validate the 
     MMG model.
@@ -11,15 +16,10 @@ import mmgdynamics.calibrated_vessels as cvs
         - ZigZag test 
     
     Note:
-        See the docs for each function for addidtional information
+        See the docs for each function for additional information
+        or use help(somefunction)
     
 """
-
-# Example river dict
-some_river = {
-    "wd_avg": 14.,
-    "B_K":    200.,
-}
 
 # Example minimal dict for a German Großmotorgüterschiff (inland transport vessel)
 fully_loaded_GMS = {
@@ -44,24 +44,23 @@ ivs = np.array([5.0, # Longitudinal vessel speed [m/s]
                 5.0] # Propeller revs [s⁻¹]
                )
 
-# Vessel parameter dictionary calculated from minimal dict
-#vs = cvs.get_coef_dict(fully_loaded_GMS,1000)
+# Uncomment to calibrate a vessel from the minimal dict above
+#vs = calibrate(fully_loaded_GMS,rho = 1000)
 
-# Uncomment next line to use a pre-calibrated vessel
-vs = cvs.GMS1
-
-# Print the vessel dict to output
-print(json.dumps(vs,sort_keys=True, indent=4))
-
+# Use a pre-calibrated vessel
+vessel = cvs.GMS1
 
 ZIGZAG: bool = False
 
 iters = 600
-s = turning_maneuver(ivs, vs, iters, "starboard")
-p = turning_maneuver(ivs, vs, iters, "starboard", water_depth=150.)
-plot_trajecory([s, p], vs)
+s = turning_maneuver(ivs, vessel, iters, "starboard")
+p = turning_maneuver(ivs, vessel, iters, "starboard", water_depth=150.)
+plot_trajecory([s, p], vessel)
 plot_r(p)
 
 if ZIGZAG:
-    z, l = zigzag_maneuver(ivs, vs, rise_time=30, max_deg=20)
+    z, l = zigzag_maneuver(ivs, vessel, rise_time=30, max_deg=20)
     plot_zigzag(z, l)
+
+# Print the vessel dict to output
+print(json.dumps(vessel,sort_keys=True, indent=4))
