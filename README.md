@@ -31,13 +31,14 @@ my_vessel = {
   "t_P":      0.0, # Thrust deduction factor
   "D_p":      0.0, # Propeller Diameter
   "eta":      0.0, # Ratio of propeller diameter to rudder span
-  "f_alpha" : 0.0 # Rudder lift gradient coefficient (If not given you will be asked for the rudder aspect ratio)
+  "f_alpha" : 0.0  # Rudder lift gradient coefficient 
+                   # (If not given you will be asked for the rudder aspect ratio)
 }
 ```
 
 ### Extension for currents
 
-This model currently only implements currents in x-direction seen from the global coordinate system. Positive current velocity flow in postive x direction, negative ones in negative x direction.
+The angle of attack of currents is set as the angle between the vessel heading and and the current heading as seen from the global frame. Positive angles attack from starborard.
 
 ## Examples
 
