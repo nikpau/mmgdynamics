@@ -1,12 +1,8 @@
 import json
 import numpy as np
-import mmgdynamics.calibrated_vessels as cvs
 
-from mmgdynamics.dynamics import (
-    turning_maneuver, plot_r, 
-    plot_trajecory, plot_zigzag, 
-    zigzag_maneuver, calibrate
-)
+from maneuvers import *
+import calibrated_vessels as cvs
 
 """In here you find some basic tests to validate the 
     MMG model.
