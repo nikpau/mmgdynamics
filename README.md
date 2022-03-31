@@ -27,7 +27,7 @@ my_vessel = {
   "m":        0.0, # Vessel displacement [m³]
   "B":        0.0, # Vessel Breadth (width)
   "Lpp":      0.0, # Length between perpendiculars
-  "C_b":      0.0, # Block coefficient
+  "C_b":      0.0, # Block coefficient (< 0.8)
   "t_P":      0.0, # Thrust deduction factor
   "D_p":      0.0, # Propeller Diameter
   "eta":      0.0, # Ratio of propeller diameter to rudder span
