@@ -78,7 +78,7 @@ GMS1 = {
     "J_slo":       -0.4, # Slope for the calculation of K_T
     "x_G":          0.0, # X-Coordinate of the center of gravity (m)
     "x_P":         -55.0, # X-Coordinate of the propeller (-0.5*Lpp)
-    "D_p":          1.75, # Diameter of propeller (m)
+    "D_p":          1.7, # Diameter of propeller (m)
     "k_0":          0.4, # Same value as "J_int" | Propeller open water coefficients. 
     "l_R":         -0.9, # correction of flow straightening factor to yaw-rate
     "gamma_R_plus": 0.394, # Flow straightening coefficient for positive rudder angles
@@ -86,7 +86,7 @@ GMS1 = {
     "gamma_R":      0.333,
     "eta":          0.960, # Ratio of propeller diameter to rudder span
     "kappa":        0.475, # An experimental constant for expressing "u_R"
-    "A_R":          5.402, # Moveable rudder area
+    "A_R":          4.402, # Moveable rudder area
     "epsilon":      2.467, # Ratio of wake fraction at propeller and rudder positions ((1 - w_R) / (1 - w_P))
     "A_R/Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
     "f_alpha":      2.45, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
@@ -99,7 +99,7 @@ GMS1 = {
     "m_x_dash":     0.009, # Added masses in x direction (m*0.05)(Clarke et. al.(1983))
     "m_y_dash":     0.0423, # Added mass in y direction (m*0.2261) (Zhou et. al.(1983))
     "J_z_dash":     1.121e-6,# Added moment of inertia (m* 0.0724) (Zhou et. al.(1983))
-    "R_0_dash":     0.036, # frictional resistance coefficient TODO Estimate this via Schoenherr's formula
+    "R_0_dash":     0.026, # frictional resistance coefficient TODO Estimate this via Schoenherr's formula
     "X_vv_dash":   -0.0723, # Hull derivatives (Yoshimura and Masumoto (2012))
     "X_vr_dash":   -0.0566, # Hull derivatives (Yoshimura and Masumoto (2012))
     "X_rr_dash":   -0.116, # Hull derivatives (Yoshimura and Masumoto (2012))
@@ -122,18 +122,18 @@ GMS1 = {
 }
 
 # L7 model of the KVLCC2 Tanker ship. Originally 320m length, 58m width.
-# Scale of model 1/45.7
+# Scale of model 1/5
 kvlcc2 = {
     "C_b":          0.810, # Block Coeffiient
-    "Lpp":          7.0, # Length over pependiculars (m)
-    "B":            1.27, # Overall width
-    "m":            3.27*1000, # Mass of ship as calculated by ▽*rho (displacement * water density)
+    "Lpp":          64, # Length over pependiculars (m)
+    "B":            11.6, # Overall width
+    "m":            2500.8*1000, # Mass of ship as calculated by ▽*rho (displacement * water density)
     "w_P0":         0.40, # Assumed wake fraction coefficient
     "J_int":        0.4, # Intercept for the calculation of K_T (https://doi.org/10.1615/ICHMT.2012.ProcSevIntSympTurbHeatTransfPal.500)
     "J_slo":       -0.5, # Slope for the calculation of K_T
-    "x_G":          0.25, # X-Coordinate of the center of gravity (m)
-    "x_P":         -3.5, # X-Coordinate of the propeller (-0.5*Lpp)
-    "D_p":          0.216, # Diameter of propeller (m)
+    "x_G":          2.24, # X-Coordinate of the center of gravity (m)
+    "x_P":         -32, # X-Coordinate of the propeller (-0.5*Lpp)
+    "D_p":          1.972, # Diameter of propeller (m)
     "k_0":          0.2931, # Same value as "J_int" | Propeller open water coefficients. 
     "k_1":         -0.2753,
     "k_2":         -0.1359,
@@ -142,7 +142,7 @@ kvlcc2 = {
     "gamma_R_minus":0.395, # Flow straightening coefficient for negative rudder angles
     "eta":          0.626, # Ratio of propeller diameter to rudder span
     "kappa":        0.50, # An experimental constant for expressing "u_R"
-    "A_R":          0.054, # Moveable rudder area
+    "A_R":          4.5, # Moveable rudder area
     "epsilon":      1.09, # Ratio of wake fraction at propeller and rudder positions ((1 - w_R) / (1 - w_P))
     "A_R/Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
     "f_alpha":      2.747, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
@@ -150,7 +150,7 @@ kvlcc2 = {
     "t_R":          0.387, # Steering resistance deduction factor
     "t_P":          0.220, # Thrust deduction factor. TODO give this more than an arbitrary value
     "x_H_dash":    -0.464, # Longitudinal coordinate of acting point of the additional lateral force
-    "d":            0.46, # Ship draft (Tiefgang)
+    "d":            4.16, # Ship draft (Tiefgang)
     "m_x_dash":     0.022, # Non dimensionalized added masses coefficient in x direction
     "m_y_dash":     0.223, # Non dimensionalized added masses coefficient in y direction
     "R_0_dash":     0.022, # frictional resistance coefficient TODO Estimate this via Schoenherr's formula
@@ -170,7 +170,7 @@ kvlcc2 = {
     "N_vvr_dash":  -0.294, # Hull derivatives
     "N_vrr_dash":   0.055, # Hull derivatives
     "N_rrr_dash":  -0.013, # Hull derivatives
-    "I_zG":         10_014, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
+    "I_zG":         640_204_800, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
     "J_z_dash":     0.011, # Added moment of inertia coefficient
     "a_H":          0.312 # Rudder force increase factor
 }
