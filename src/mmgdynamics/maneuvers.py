@@ -61,7 +61,6 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict,
     # Simulate for `time` seconds
     for s in range(time):
 
-        print(s)
 
         # Set r to the next value in our list
         ivs[3] = delta_list[s+1]
@@ -73,15 +72,15 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict,
                    nps_old=ivs[4], 
                    delta_old=delta_list[s],
                    fl_vel=None,
-                   water_depth=water_depth,
-                   r_params=None,
-                   psi=psi)
+                   water_depth=water_depth)
 
         # Vel in x and y direction (m/s), angular turning rate (rad/s)
         u, v, r, _, _ = sol
 
         # Transform to earth-fixed coordinate system
+
         psi += r
+        print(s,round(float(r),4),psi*180/math.pi)
         v_x = math.cos(psi) * u - math.sin(psi) * v
         v_y = math.sin(psi) * u + math.cos(psi) * v
 
@@ -192,9 +191,7 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int)
                    nps_old=ivs[4], 
                    delta_old=delta_list[s],
                    fl_vel=None,
-                   water_depth=None,                        
-                   r_params=None,
-                   psi=psi)
+                   water_depth=None)
 
         # Angular turning rate (rad/s)
         _, _, r, _, _ = sol

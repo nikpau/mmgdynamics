@@ -1,6 +1,7 @@
 import math
 import numpy as np
-import crossflow as cf
+
+from . import crossflow as cf
 
 from typing import Dict
 
@@ -276,10 +277,6 @@ def shallow_water_hdm(v: dict, water_depth: float) -> None:
     else:
         v["gamma_R"] *= flow_str_coef
     
-    
-    # Correction term would not make sense otherwise
-    if L > 60:
-        L = 70.
     
     coef = (water_depth/d) - 1
     

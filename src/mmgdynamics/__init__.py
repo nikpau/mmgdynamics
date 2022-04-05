@@ -5,7 +5,7 @@ from warnings import warn
 from typing import Optional, Any
 from scipy.integrate import solve_ivp
 
-from dynamics import (
+from .dynamics import (
     LogicError, shallow_water_hdm,
     mmg_dynamics
 )
