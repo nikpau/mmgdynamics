@@ -17,13 +17,15 @@ from a set of initial conditions X for an arbitrary time horizon.
 
 # Export only selected functions if used as wildcard import
 __all__ = [
-    "turning_maneuver", "zigzag_maneuver", 
-    "plot_r", "plot_trajecory", 
-    "plot_zigzag","calilbrate"
-    ]
+    "turning_maneuver", "zigzag_maneuver",
+    "plot_r", "plot_trajecory",
+    "plot_zigzag", "calilbrate"
+]
 
 # System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
-def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict, 
+
+
+def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
                  fl_psi: float, fl_vel: float, nps_old: float,
                  delta_old: float,) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
@@ -70,7 +72,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     else:
         J = (1 - w_P) * u / (nps * p["D_p"])  # Propeller advance ratio
 
-    if all(k in p for k in ("k_0","k_1","k_2")):
+    if all(k in p for k in ("k_0", "k_1", "k_2")):
         # Propeller thrust open water characteristic
         K_T = p["k_0"] + (p["k_1"] * J) + (p["k_2"] * J**2)
     else:
@@ -95,7 +97,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     # Longitudinal inflow velocity components to rudder
     if J == 0.0:
         u_R = math.sqrt(p["eta"] * (p["kappa"] * p["epsilon"] *
-                      8.0 * p["k_0"] * nps ** 2 * p["D_p"]**4 / np.pi)**2)
+                                    8.0 * p["k_0"] * nps ** 2 * p["D_p"]**4 / np.pi)**2)
     else:
         u_R = u * (1 - w_P) * p["epsilon"] * math.sqrt(
             p["eta"] * (1.0 + p["kappa"] * (
@@ -114,7 +116,6 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     else:
         F_N = 0.5 * p["A_R/Ld_em"] * (p["Lpp"]*p["d"]*p["rho"]) * \
             p["f_alpha"] * (U_R**2) * math.sin(alpha_R)
-
 
     # Longitudinal surge force around midship acting on ship hull
     X_H = (0.5 * p["rho"] * p["Lpp"] * p["d"] * (U**2) * (
@@ -165,7 +166,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
 
     # Forces related to currents:
     if fl_vel is not None and fl_vel != 0.:
-    
+
         # Longitudinal velocity of current dependent on ship heading
         u_c = math.cos(fl_psi) * fl_vel
 
@@ -176,22 +177,23 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
 
         # Angle of attack for current
         aoa = math.atan2(v_m - v_c, u - u_c)
-        
+
         # Wetted surface area [m²]. Calculated as (L*B + 2*d(L+B))*
         S = (p["Lpp"] * p["B"] + 2*p["d"]*(p["Lpp"] + p["B"])) * p["C_b"]
-        
+
         # Longitudinal current force
-        X_C = 0.5 *p["rho"] * p["Lpp"] * p["d"] * U_c**2 * C_1c(aoa,S,fl_vel,p)
+        X_C = 0.5 * p["rho"] * p["Lpp"] * p["d"] * \
+            U_c**2 * C_1c(aoa, S, fl_vel, p)
 
         # Lateral current force
-        Y_C = 0.5 *p["rho"] * p["Lpp"] * p["d"] * U_c**2 * C_2c(aoa,p)
-        
+        Y_C = 0.5 * p["rho"] * p["Lpp"] * p["d"] * U_c**2 * C_2c(aoa, p)
+
         # Current Moment
-        N_C = 0.5 *p["rho"] * p["Lpp"]**2 * p["d"] * U_c**2 * C_6c(aoa,p)
-    
-    else: 
+        N_C = 0.5 * p["rho"] * p["Lpp"]**2 * p["d"] * U_c**2 * C_6c(aoa, p)
+
+    else:
         X_C, Y_C, N_C = 0.0, 0.0, 0.0
-    
+
     # Added masses and added moment of inertia
     m_x = p["m_x_dash"] * (0.5 * p["rho"] * (p["Lpp"]**2) * p["d"])
     m_y = p["m_y_dash"] * (0.5 * p["rho"] * (p["Lpp"]**2) * p["d"])
@@ -219,80 +221,80 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
 
     return np.array([d_u, d_v, d_r, d_delta, d_nps])
 
+
 def shallow_water_hdm(v: dict, water_depth: float) -> None:
     """Correct the hydrodynamic derivatives and
     hydrodynamic masses for shallow water conditions.
-    
+
     Sources:
         Tang et. al (2020) https://doi.org/10.1016/j.oceaneng.2019.106679
         Furukawa et. al. (2016) https://dx.doi.org/10.18451/978-3-939230-38-0_33
-        
+
 
     Args:
         v (dict): vessel parameter dict
         water_depth (float): water depth around vessel [m]
     """
-    
+
     # Length, Beam (width), Draft, Block Coefficient
     L, B, d, Cb = v["Lpp"], v["B"], v["d"], v["C_b"]
-    
+
     h = water_depth
-    
+
     # Shallow water adaption for longitudinal hydrodynamic derivatives
     # Source: Furukawa et. al. (2016)
-    v["X_vv_dash"]  *= -70.8*(d/h)**4 + 27.7*(d/h)**2 + 1
-    v["X_vr_dash"]  *= 1.3*(d/h)**2 + 1
-    
+    v["X_vv_dash"] *= -70.8*(d/h)**4 + 27.7*(d/h)**2 + 1
+    v["X_vr_dash"] *= 1.3*(d/h)**2 + 1
+
     # Hull frictional resistance coefficient
-    v["R_0_dash"]   *= 0.388*(d/h)**2 + 1
-    
-    
+    v["R_0_dash"] *= 0.388*(d/h)**2 + 1
+
     # Correction by Tang et al 2020
     k = (2*d)/L
-    k_e = lambda q: k/(d/(2*h) + ((np.pi*d)/(2*h) * 1/math.tan((np.pi*d)/(2*h)))**q)
-    
+    def k_e(q): return k/(d/(2*h) + ((np.pi*d) /
+                                     (2*h) * 1/math.tan((np.pi*d)/(2*h)))**q)
+
     v["Y_v_dash"] = -(0.5*np.pi*k_e(2.3)+1.4*Cb*B/L)
     v["Y_r_dash"] = 0.25*np.pi * k_e(0.7)
     v["N_v_dash"] = -k_e(1.7)
     v["N_r_dash"] = -(0.54*k_e(0.7) - k_e(0.7)**2)
-    
+
     v["N_vvr_dash"] *= 1+6*(d/h)**2.5
     v["N_vrr_dash"] *= 1+6*(d/h)**2.5
-    
+
     # Thrust deduction factor
     oneminustp = 1 - v["t_P"]
     oneminustp *= 1/(1-0.2*(d/h) + 0.7295*(d/h)**2)
     v["t_P"] = -oneminustp + 1
-    
+
     # Wake fraction coefficient
     oneminuswp = 1 - v["w_P0"]
     oneminuswp *= math.cos(1.4*Cb*d/h)
     v["w_P0"] = -oneminuswp + 1
-    
+
     # Flow-straightening coefficient
     flow_str_coef = 1 + 0.0161*(d/h) + 4.4222*(d/h)**2 - 4.9825*(d/h)**3
-    if all(k in v for k in ["gamma_R_minus","gamma_R_plus"]):
+    if all(k in v for k in ["gamma_R_minus", "gamma_R_plus"]):
         v["gamma_R_minus"] *= flow_str_coef
-        v["gamma_R_plus"]  *= flow_str_coef
+        v["gamma_R_plus"] *= flow_str_coef
     else:
         v["gamma_R"] *= flow_str_coef
-    
-    
+
     coef = (water_depth/d) - 1
-    
+
     mxshallow = (coef**1.3+3.77+1.14*(B/d)-0.233*(L/d)-3.43*Cb)/(coef**1.3)
     myshallow = (coef**0.82+0.413+0.0320*(B/d)+0.129*(B/d)**2)/(coef**0.82)
     Jzshallow = (coef**0.82+0.413+0.0192*(B/d)+0.00554*(B/d)**2)/(coef**0.82)
-    
-    v["m_x_dash"] *= mxshallow 
+
+    v["m_x_dash"] *= mxshallow
     v["m_y_dash"] *= myshallow
     v["J_z_dash"] *= Jzshallow
 
-    
+
 # Get the hydrodynamic coefficients due to currents.
-def C_1c(psi: float, S:float, fl_vel: float, p: dict) -> float:
+def C_1c(psi: float, S: float, fl_vel: float, p: dict) -> float:
     """Longitudinal forces due to currents
-    
+
     Sources:
         https://doi.org/10.1016/j.amc.2004.12.005
         https://doi.org/10.1016/S0141-1187(98)00002-9
@@ -306,19 +308,20 @@ def C_1c(psi: float, S:float, fl_vel: float, p: dict) -> float:
     Returns:
         float: Non-dimensionalized longitudinal current force coef
     """
-    
+
     L, d, rho = p["Lpp"], p["d"], p["rho"]
-    
-    # Reynolds Number calculated for characteristic length of vessel. 
+
+    # Reynolds Number calculated for characteristic length of vessel.
     # Dynamic viscosity of water at 20°C ~ 1.00e-6
     Re = abs(fl_vel)*L*rho/1.00e-6
-    
-    val = (0.9375*S/(((math.log(Re)-2)**2)*d*L)) * math.cos(psi) + \
-        1/8 * np.pi*d/L*(math.cos(3*psi) - math.cos(psi))
-        
-    return val 
 
-def C_2c(psi: float, p: dict) -> float:  
+    val = (0.09375*S/(((math.log(Re)-2)**2)*d*L)) * math.cos(psi) + \
+        1/8 * np.pi*d/L*(math.cos(3*psi) - math.cos(psi))
+
+    return val
+
+
+def C_2c(psi: float, p: dict) -> float:
     """Lateral forces due to currents
 
     Args:
@@ -328,14 +331,17 @@ def C_2c(psi: float, p: dict) -> float:
     Returns:
         float: Non-dimensionalized lateral current force coef
     """
-    
+
     L, B, d, Cb = p["Lpp"], p["B"], p["d"], p["C_b"]
-    C_y = cf.interpolateY(B/(2*d),cf.cross_flow) # Fig 1 in https://doi.org/10.1016/S0141-1187(98)00002-9
-    
-    val1 = (C_y - (np.pi*d/(2*L))) * math.sin(psi)*abs(math.sin(psi)) + (np.pi*d/(2*L))*(math.sin(psi)**3)
+    # Fig 1 in https://doi.org/10.1016/S0141-1187(98)00002-9
+    C_y = cf.interpolateY(B/(2*d), cf.cross_flow)
+
+    val1 = (C_y - (np.pi*d/(2*L))) * math.sin(psi) * \
+        abs(math.sin(psi)) + (np.pi*d/(2*L))*(math.sin(psi)**3)
     val2 = (np.pi*d/L)*(1+0.4*Cb*B/d)*math.sin(psi)*abs(math.cos(psi))
-    
+
     return val1 + val2
+
 
 def C_6c(psi: float, p: dict) -> float:
     """Additional moment force due to currents
@@ -347,19 +353,22 @@ def C_6c(psi: float, p: dict) -> float:
     Returns:
         float: Non-dimensionalized moment current force coef
     """
-    
+
     L, B, d, x_G = p["Lpp"], p["B"], p["d"], p["x_G"]
-    C_y = cf.interpolateY(B/(2*d),cf.cross_flow)
-    
-    val1 = -x_G/L*(C_y - (np.pi*d/(2*L)))* math.sin(psi)*abs(math.sin(psi))
+    C_y = cf.interpolateY(B/(2*d), cf.cross_flow)
+
+    val1 = -x_G/L*(C_y - (np.pi*d/(2*L))) * math.sin(psi)*abs(math.sin(psi))
     val2 = np.pi*d/L*math.sin(psi) * math.cos(psi)
-    val3 = ((1+abs(math.cos(psi)))/2)**2 * (np.pi*d/L) * (0.5-2.4*d/L)*math.sin(psi)*abs(math.cos(psi))
-    
+    val3 = ((1+abs(math.cos(psi)))/2)**2 * (np.pi*d/L) * \
+        (0.5-2.4*d/L)*math.sin(psi)*abs(math.cos(psi))
+
     return val1 - val2 - val3
 
 # In here all the important hydrodynamic derivatives are calculated via empirical
 # formulas from Suras and Sakir Bal (2019)
-def calibrate(v: Dict[str,float], rho: float) -> Dict[str,float]:
+
+
+def calibrate(v: Dict[str, float], rho: float) -> Dict[str, float]:
     """Calculate relevant hydrodynamic derivatives based on a minimal
     dict and a given water density
 
@@ -378,10 +387,11 @@ def calibrate(v: Dict[str,float], rho: float) -> Dict[str,float]:
     """
 
     # Length, Breadth, draft, Block coef, mass, Rudder area
-    mininfo = ["B","Lpp","d","C_b","m","A_R"]
+    mininfo = ["B", "Lpp", "d", "C_b", "m", "A_R"]
 
-    if not all (k in v for k in mininfo):
-        raise KeyError(f"Mandatory keys not found. Need at least ['B','Lpp','d','C_b','A_R']")
+    if not all(k in v for k in mininfo):
+        raise KeyError(
+            f"Mandatory keys not found. Need at least ['B','Lpp','d','C_b','A_R']")
 
     # Unpack initial dict
     L, B, d, Cb, m = v["Lpp"], v["B"], v["d"], v["C_b"], v["m"]
@@ -394,42 +404,45 @@ def calibrate(v: Dict[str,float], rho: float) -> Dict[str,float]:
     v["x_P"] = -0.5*L
 
     # Add current water density to dict
-    v["rho"]= rho
+    v["rho"] = rho
 
     # Masses and Moment of Intertia
     nondim_M = 0.5 * v["rho"] * L**2 * d
     nondim_N = 0.5 * v["rho"] * L**4 * d
-    v["m"]          = m * v["rho"] # Displacement * water density
-    v["I_zG"]       = v["m"] * (0.25*L)**2
-    v["m_x_dash"]   = 0.05*v["m"] / nondim_M
-    v["m_y_dash"]   = (0.882-0.54*Cb*(1-1.6*d/B)-0.156*(1-0.673*Cb)*L/B+\
-        0.826*((d*L)/(B**2))*(1-0.678*d/B)-0.638*Cb*((d*L)/(B**2))*(1-0.669*d/B))*v["m"] / nondim_M
-    v["J_z_dash"]   = ((0.01*(33-76.85*Cb*(1-0.784*Cb)+3.43*L/B*(1-0.63*Cb)))**2)*v["m"] / nondim_N
+    v["m"] = m * v["rho"]  # Displacement * water density
+    v["I_zG"] = v["m"] * (0.25*L)**2
+    v["m_x_dash"] = 0.05*v["m"] / nondim_M
+    v["m_y_dash"] = (0.882-0.54*Cb*(1-1.6*d/B)-0.156*(1-0.673*Cb)*L/B +
+                     0.826*((d*L)/(B**2))*(1-0.678*d/B)-0.638*Cb*((d*L)/(B**2))*(1-0.669*d/B))*v["m"] / nondim_M
+    v["J_z_dash"] = ((0.01*(33-76.85*Cb*(1-0.784*Cb)+3.43 *
+                     L/B*(1-0.63*Cb)))**2)*v["m"] / nondim_N
 
     # Hydrodynamic derivatives
     # Surge
-    v["X_vv_dash"]  = 1.15*(Cb/(L/B)) - 0.18 # Yoshimura and Masumoto (2012)
-    v["X_vvvv_dash"]= -6.68*(Cb/(L/B)) + 1.1 # Yoshimura and Masumoto (2012)
-    v["X_rr_dash"]  = (-0.0027+0.0076*Cb*d/B)*L/d # Lee et al. (1998)
-    v["X_vr_dash"]  = v["m_y_dash"] - 1.91*(Cb/(L/B)) + 0.08 # Yoshimura and Masumoto (2012)
+    v["X_vv_dash"] = 1.15*(Cb/(L/B)) - 0.18  # Yoshimura and Masumoto (2012)
+    v["X_vvvv_dash"] = -6.68*(Cb/(L/B)) + 1.1  # Yoshimura and Masumoto (2012)
+    v["X_rr_dash"] = (-0.0027+0.0076*Cb*d/B)*L/d  # Lee et al. (1998)
+    v["X_vr_dash"] = v["m_y_dash"] - 1.91 * \
+        (Cb/(L/B)) + 0.08  # Yoshimura and Masumoto (2012)
 
     # Sway
-    v["Y_v_dash"]   = -(0.5*math.pi*(2*d/L)+1.4*(Cb/(L/B))) # Yoshimura and Masumoto (2012)
-    v["Y_vvv_dash"] = -0.185*L/B + 0.48 # Yoshimura and Masumoto (2012)
-    v["Y_r_dash"]   = v["m_x_dash"] + 0.5*Cb*B/L # Yoshimura and Masumoto (2012)
+    v["Y_v_dash"] = -(0.5*math.pi*(2*d/L)+1.4*(Cb/(L/B))
+                      )  # Yoshimura and Masumoto (2012)
+    v["Y_vvv_dash"] = -0.185*L/B + 0.48  # Yoshimura and Masumoto (2012)
+    v["Y_r_dash"] = v["m_x_dash"] + 0.5*Cb*B/L  # Yoshimura and Masumoto (2012)
     v["Y_rrr_dash"] = -0.051
     v["Y_vrr_dash"] = -(0.26*(1-Cb)*L/B + 0.11)
-    v["Y_vvr_dash"] = -0.75 # TODO: Change this
+    v["Y_vvr_dash"] = -0.75  # TODO: Change this
 
     # Yaw
-    v["N_v_dash"]   = -2*d/L # Yoshimura and Masumoto (2012)
-    v["N_vvv_dash"] = -(-0.69*Cb+0.66)# Yoshimura and Masumoto (2012)
-    v["N_r_dash"]   = -0.54*(2*d/L) + (2*d/L)**2  # Yoshimura and Masumoto (2012)
-    v["N_rrr_dash"] = ((0.25*Cb)/(L/B))-0.056 # Yoshimura and Masumoto (2012)
-    v["N_vrr_dash"] = -0.075*(1-Cb)*L/B-0.098 # Yoshimura and Masumoto (2012)
-    v["N_vvr_dash"] = ((1.55*Cb)/(L/B))-0.76 # Yoshimura and Masumoto (2012)
+    v["N_v_dash"] = -2*d/L  # Yoshimura and Masumoto (2012)
+    v["N_vvv_dash"] = -(-0.69*Cb+0.66)  # Yoshimura and Masumoto (2012)
+    v["N_r_dash"] = -0.54*(2*d/L) + (2*d/L)**2  # Yoshimura and Masumoto (2012)
+    v["N_rrr_dash"] = ((0.25*Cb)/(L/B))-0.056  # Yoshimura and Masumoto (2012)
+    v["N_vrr_dash"] = -0.075*(1-Cb)*L/B-0.098  # Yoshimura and Masumoto (2012)
+    v["N_vvr_dash"] = ((1.55*Cb)/(L/B))-0.76  # Yoshimura and Masumoto (2012)
 
-    # Wake coefficient 
+    # Wake coefficient
     if "w_P0" not in v:
         v["w_P0"] = 0.5*Cb - 0.05
 
@@ -438,29 +451,31 @@ def calibrate(v: Dict[str,float], rho: float) -> Dict[str,float]:
         v["t_P"] = -0.27
 
     # Rudder force incease factor
-    v["a_H"] = 0.627*Cb-0.153 # Quadvlieg (2013)
+    v["a_H"] = 0.627*Cb-0.153  # Quadvlieg (2013)
 
     # Longituinal acting point of longitudinal force
-    v["x_H_dash"] = -0.45 # Aoki et. al. (2006)
+    v["x_H_dash"] = -0.45  # Aoki et. al. (2006)
 
     # Steering resistance deduction factor
-    v["t_R"] = 0.39 # Yoshimura and Masumoto (2012)
+    v["t_R"] = 0.39  # Yoshimura and Masumoto (2012)
 
     # Espilon [Lee and Shin (1998)]
-    v["epsilon"] = -2.3281+8.697*Cb-3.78*((2*d)/L)+1.19*Cb**2+292*((2*d)/L)**2-81.51*Cb*((2*d)/L) # Lee and Shin (1998)
-    #v["epsilon"] = -156.5*(Cb*B/L)**2 + 41.6*(Cb*B/L) - 1.76 # Kijima (1990)
-    #v["epsilon"] = 2.26*1.82*(1-v["w_P0"]) # Yoshimura and Masumoto (2012)
+    v["epsilon"] = -2.3281+8.697*Cb-3.78 * \
+        ((2*d)/L)+1.19*Cb**2+292*((2*d)/L)**2 - \
+        81.51*Cb*((2*d)/L)  # Lee and Shin (1998)
+    # v["epsilon"] = -156.5*(Cb*B/L)**2 + 41.6*(Cb*B/L) - 1.76 # Kijima (1990)
+    # v["epsilon"] = 2.26*1.82*(1-v["w_P0"]) # Yoshimura and Masumoto (2012)
 
     # Kappa
     v["kappa"] = 0.55-0.8*Cb*B/L
 
     # Correction of flow straightening factor to yaw-rate
-    v["l_R"] = -0.9 # Yoshimura and Masumoto (2012)
+    v["l_R"] = -0.9  # Yoshimura and Masumoto (2012)
 
     # Flow straightening coefficient
     v["gamma_R"] = 2.06*Cb*B/L+0.14
 
-    # Additional assumptions 
+    # Additional assumptions
     v["J_int"] = 0.4
     v["k_0"] = 0.4
     v["J_slo"] = -0.5
@@ -468,23 +483,26 @@ def calibrate(v: Dict[str,float], rho: float) -> Dict[str,float]:
     # Rudder aspect ratio
     if "f_alpha" not in v:
         while True:
-            asp = input("No rudder aspect ratio found. Please enter manually: ")
+            asp = input(
+                "No rudder aspect ratio found. Please enter manually: ")
             try:
                 asp = float(asp)
                 break
             except ValueError as e:
-                print("Wrong input type. Only float or int allowed. Err:",e)
-        
+                print("Wrong input type. Only float or int allowed. Err:", e)
+
         asp = float(asp)
-        falpha =(6.13*asp)/(asp+2.25)
+        falpha = (6.13*asp)/(asp+2.25)
         v["f_alpha"] = falpha
 
-        print(f"Aspect ration saved. Rudder lift coef calculated to be {falpha}")
+        print(
+            f"Aspect ration saved. Rudder lift coef calculated to be {falpha}")
 
     # Frictional resistance coefficent [ARBITRARY, no calculations so far]
     v["R_0_dash"] = 0.025
 
     return v
+
 
 class LogicError(Exception):
     pass
