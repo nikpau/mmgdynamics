@@ -312,10 +312,10 @@ def C_1c(psi: float, S: float, fl_vel: float, p: dict) -> float:
     L, d, rho = p["Lpp"], p["d"], p["rho"]
 
     # Reynolds Number calculated for characteristic length of vessel.
-    # Dynamic viscosity of water at 20°C ~ 1.00e-6
-    Re = abs(fl_vel)*L*rho/1.00e-6
+    # Dynamic viscosity of water at 20°C ~ 1.267E-6
+    Re = abs(fl_vel)*L*rho/1.267E-6
 
-    val = (0.09375*S/(((math.log(Re)-2)**2)*d*L)) * math.cos(psi) + \
+    val = (0.09375*S/(((math.log10(Re)-2)**2)*d*L)) * math.cos(psi) + \
         1/8 * np.pi*d/L*(math.cos(3*psi) - math.cos(psi))
 
     return val
