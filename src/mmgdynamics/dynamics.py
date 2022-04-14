@@ -25,7 +25,7 @@ __all__ = [
 # System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
 
 
-def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
+def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict, psi:float,
                  fl_psi: float, fl_vel: float, nps_old: float,
                  delta_old: float,) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
@@ -35,6 +35,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
         t (np.ndarray): time
         X (np.ndarray): Initial values
         params (dict):  Vessel dict 
+        psi (float): vessel heading in the global frame
         fl_psi (float): Attack angle of current relative
                         longitudinal axis of motion [rad]
         fl_vel (float): Velocity of current [m/s]
@@ -168,28 +169,27 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict,
     if fl_vel is not None and fl_vel != 0.:
 
         # Longitudinal velocity of current dependent on ship heading
-        u_c = math.cos(fl_psi) * fl_vel
+        u_c = fl_vel * math.cos(fl_psi - psi)
+        u_rc = (u - u_c)
 
         # Lateral velocity of current dependent on ship heading
-        v_c = math.sin(fl_psi) * fl_vel
+        v_c = fl_vel * math.sin(fl_psi - psi)
+        v_rc = (v_m - v_c)
 
-        U_c = math.sqrt((v_m - v_c)**2 + (u - u_c)**2)
+        V_Rc = math.sqrt(u_rc**2 + v_rc**2)
 
-        # Angle of attack for current
-        aoa = math.atan2(v_m - v_c, u - u_c)
-
-        # Wetted surface area [m²]. Calculated as (L*B + 2*d(L+B))*
-        S = (p["Lpp"] * p["B"] + 2*p["d"]*(p["Lpp"] + p["B"])) * p["C_b"]
+        gamma_rc = -math.atan2(v_rc,u_rc)
 
         # Longitudinal current force
-        X_C = 0.5 * p["rho"] * p["Lpp"] * p["d"] * \
-            U_c**2 * C_1c(aoa, S, fl_vel, p)
+        A_Fc = p["B"] * p["d"] * p["C_b"]
+        X_C = 0.5 * p["rho"] * A_Fc * C_X(gamma_rc) * V_Rc**2
 
         # Lateral current force
-        Y_C = 0.5 * p["rho"] * p["Lpp"] * p["d"] * U_c**2 * C_2c(aoa, p)
+        A_Lc = p["Lpp"] * p["d"] * p["C_b"]
+        Y_C = 0.5 * p["rho"] * A_Lc * C_Y(gamma_rc) * V_Rc**2
 
         # Current Moment
-        N_C = 0.5 * p["rho"] * p["Lpp"]**2 * p["d"] * U_c**2 * C_6c(aoa, p)
+        N_C = 0.5 * p["rho"] * A_Lc * p["Lpp"] * C_N(gamma_rc) * V_Rc**2
 
     else:
         X_C, Y_C, N_C = 0.0, 0.0, 0.0
@@ -291,78 +291,20 @@ def shallow_water_hdm(v: dict, water_depth: float) -> None:
     v["J_z_dash"] *= Jzshallow
 
 
-# Get the hydrodynamic coefficients due to currents.
-def C_1c(psi: float, S: float, fl_vel: float, p: dict) -> float:
-    """Longitudinal forces due to currents
+def C_X(gamma_rc: float) -> float:
 
-    Sources:
-        https://doi.org/10.1016/j.amc.2004.12.005
-        https://doi.org/10.1016/S0141-1187(98)00002-9
+    return -0.0665*gamma_rc**5 + 0.5228*gamma_rc**4 - 1.4365*gamma_rc**3 \
+    + 1.6024*gamma_rc**2 - 0.2967*gamma_rc - 0.4691
 
-    Args:
-        psi (float): Angle of attack for current [rad]
-        S (float): Wetted surface area
-        fl_vel (float): fluid velocity (current velocity)
-        p (dict): parameter dict for vessel
+def C_Y(gamma_rc: float) -> float:
 
-    Returns:
-        float: Non-dimensionalized longitudinal current force coef
-    """
+    return 0.1273*gamma_rc**4 - 0.802*gamma_rc**3 + 1.3216*gamma_rc**2\
+        - 0.1799*gamma_rc
 
-    L, d, rho = p["Lpp"], p["d"], p["rho"]
+def C_N(gamma_rc: float) -> float:
 
-    # Reynolds Number calculated for characteristic length of vessel.
-    # Dynamic viscosity of water at 20°C ~ 1.267E-6
-    Re = abs(fl_vel)*L*rho/1.267E-6
-
-    val = (0.09375*S/(((math.log10(Re)-2)**2)*d*L)) * math.cos(psi) + \
-        1/8 * np.pi*d/L*(math.cos(3*psi) - math.cos(psi))
-
-    return val
-
-
-def C_2c(psi: float, p: dict) -> float:
-    """Lateral forces due to currents
-
-    Args:
-        psi (float): Angle of attack for current [rad]
-        p (dict): parameter dict for vessel
-
-    Returns:
-        float: Non-dimensionalized lateral current force coef
-    """
-
-    L, B, d, Cb = p["Lpp"], p["B"], p["d"], p["C_b"]
-    # Fig 1 in https://doi.org/10.1016/S0141-1187(98)00002-9
-    C_y = cf.interpolateY(B/(2*d), cf.cross_flow)
-
-    val1 = (C_y - (np.pi*d/(2*L))) * math.sin(psi) * \
-        abs(math.sin(psi)) + (np.pi*d/(2*L))*(math.sin(psi)**3)
-    val2 = (np.pi*d/L)*(1+0.4*Cb*B/d)*math.sin(psi)*abs(math.cos(psi))
-
-    return val1 + val2
-
-
-def C_6c(psi: float, p: dict) -> float:
-    """Additional moment force due to currents
-
-    Args:
-        psi (float): Angle of attack for current [rad]
-        p (dict): parameter dict for vessel
-
-    Returns:
-        float: Non-dimensionalized moment current force coef
-    """
-
-    L, B, d, x_G = p["Lpp"], p["B"], p["d"], p["x_G"]
-    C_y = cf.interpolateY(B/(2*d), cf.cross_flow)
-
-    val1 = -x_G/L*(C_y - (np.pi*d/(2*L))) * math.sin(psi)*abs(math.sin(psi))
-    val2 = np.pi*d/L*math.sin(psi) * math.cos(psi)
-    val3 = ((1+abs(math.cos(psi)))/2)**2 * (np.pi*d/L) * \
-        (0.5-2.4*d/L)*math.sin(psi)*abs(math.cos(psi))
-
-    return val1 - val2 - val3
+    return -0.014*gamma_rc**5 + 0.1131*gamma_rc**4 - 0.2757*gamma_rc**3\
+        + 0.1617*gamma_rc**2 + 0.0728*gamma_rc
 
 # In here all the important hydrodynamic derivatives are calculated via empirical
 # formulas from Suras and Sakir Bal (2019)

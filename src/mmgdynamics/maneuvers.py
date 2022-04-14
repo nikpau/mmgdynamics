@@ -259,11 +259,11 @@ def free_flow_test(vessel: Dict[str, float]):
 
     ivs = np.array(
         [
-            0.0,  # Longitudinal vessel speed [m/s]
+            5.0,  # Longitudinal vessel speed [m/s]
             0.0,  # Lateral vessel speed [m/s]
             0.0,  # Yaw rate acceleration [rad/s]
-            0.0,  # Rudder angle [rad]
-            0.0  # Propeller revs [s⁻¹]
+            deg(10),  # Rudder angle [rad]
+            5.0  # Propeller revs [s⁻¹]
         ]
     )
     nps = ivs[-1]
@@ -274,12 +274,14 @@ def free_flow_test(vessel: Dict[str, float]):
         sol = step(
             X=ivs,
             params=vessel,
+            psi=head,
             nps_old=nps,
-            delta_old=0.0,
-            fl_psi=ang_diff(head, fl_psi),
-            fl_vel=2.0,
+            delta_old=deg(10),
+            fl_psi=fl_psi,
+            fl_vel=10.0,
             water_depth=6.0,
-            sps=1
+            sps=1,
+            atol=1e-6,rtol=1e-6
         )
 
         timestep += 1
@@ -314,8 +316,8 @@ def free_flow_test(vessel: Dict[str, float]):
         ax.axhline(y=0, color='r', linestyle='-')
         ax.axvline(x=0, color='r', linestyle='-')
         ax.quiver(qx, qy,
-                  np.full((11, 11), -math.sin(fl_psi)),
-                  np.full((11, 11), -math.cos(fl_psi)),
+                  np.full((11, 11), math.sin(fl_psi)),
+                  np.full((11, 11), math.cos(fl_psi)),
                   scale=20, headwidth=2)
         ax.add_patch(vessel_rect)
         plt.pause(0.01)

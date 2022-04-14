@@ -17,7 +17,7 @@ __all__ = ["step"]
 
 
 def step(*, X: np.ndarray,params: dict, sps: float, nps_old: float, 
-         delta_old: float, fl_psi: Optional[float] = None, 
+         delta_old: float, psi: float, fl_psi: Optional[float] = None,
          fl_vel: Optional[float] = None, water_depth: Optional[float] = None, 
          debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5,
          **sol_options # Additional options (see help(solve_ivp))
@@ -71,8 +71,9 @@ def step(*, X: np.ndarray,params: dict, sps: float, nps_old: float,
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
                          args=(params if water_depth is None else sh_params, # Order is important! Do not change
-                               fl_psi,fl_vel, 
-                               nps_old, delta_old),
+                            psi,
+                            fl_psi,fl_vel, 
+                            nps_old, delta_old),
                          method="RK45",
                          rtol = rtol,
                          atol = atol,
