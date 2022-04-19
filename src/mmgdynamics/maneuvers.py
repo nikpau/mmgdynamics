@@ -1,11 +1,13 @@
 
 import math
-from matplotlib.patches import Rectangle
-import numpy as np
-import matplotlib.pyplot as plt
-from calibrated_vessels import kvlcc2
+from turtle import color
+from typing import Dict, List, Optional
 
-from typing import Dict, List
+import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.colors import to_rgba
+from matplotlib.patches import Patch, Rectangle
+
 from mmgdynamics import step
 
 
@@ -142,28 +144,30 @@ def build_delta_zigzag(rise_time: int = 20, delta_max: float = 20.) -> np.ndarra
         np.ndarray: Array of rudder angles per timestep, length of array
     """
 
-    # Init increase from 0 to delta max °
-    init_inc = np.linspace(0, delta_max, rise_time)
-    # Decrease from delta max° to -delta max°
-    decr = np.linspace(delta_max, -delta_max, rise_time)
+    # Init increase from 0 to -delta max °
+    init_inc = np.linspace(0, -delta_max, rise_time)
+    # Decrease from -delta max° to delta max°
+    decr = np.linspace(-delta_max, delta_max, rise_time)
     # Increase from -delta max° to delta max°
-    incr = np.linspace(-delta_max, delta_max, rise_time)
+    incr = np.linspace(delta_max, -delta_max, rise_time)
 
     # Build rudder angle list
-    delta_zigzag = np.concatenate([
+    delta_zigzag = np.hstack([
         init_inc,
-        np.full(rise_time*3, delta_max),
+        np.full(rise_time*3, -delta_max),
         decr,
-        np.full(rise_time*10, -delta_max),
+        np.full(rise_time*10, delta_max),
         incr,
-        np.full(rise_time*10, delta_max)
-    ]).flatten()
-    delta_zigzag = delta_zigzag * np.pi/180
+        np.full(rise_time*10, -delta_max)
+    ])
+    
+    delta_zigzag = delta_zigzag/180*np.pi
 
     return delta_zigzag, len(delta_zigzag)
 
 
-def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int) -> np.ndarray:
+def zigzag_maneuver(ivs: np.ndarray, vessel: dict, 
+                    max_deg: int, rise_time: int, wd: Optional[float] = None) -> np.ndarray:
     """Perform ZigZag maneuver
 
     Args:
@@ -190,11 +194,15 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: dict, max_deg: int, rise_time: int)
         # Solve the ODE system for one second at a time
         sol = step(X=ivs,
                    params=vessel,
-                   sps=1,
+                   sps=.1,
+                   psi=psi,
                    nps_old=ivs[4],
                    delta_old=delta_list[s],
                    fl_vel=None,
-                   water_depth=None)
+                   fl_psi=None,
+                   water_depth=wd,
+                   atol=1e-6,
+                   rtol=1e-6)
 
         # Angular turning rate (rad/s)
         _, _, r, _, _ = sol
@@ -213,10 +221,12 @@ def plot_zigzag(t: list, delta_list: np.ndarray) -> None:
     t = t * 180/np.pi
     delta_list = delta_list * 180/np.pi
     delta_list = np.delete(delta_list, 0)
+    
+    colors = ["#9b2226","#001219"]
 
     plt.figure(figsize=(16, 10))
-    plt.plot(np.arange(len(t)), t, linewidth=2.5)
-    plt.plot(np.arange(len(t)), delta_list, linewidth=2.5)
+    plt.plot(np.arange(len(t)), t, linewidth=2.5, color=colors[0])
+    plt.plot(np.arange(len(t)), delta_list, linewidth=2.5, color=colors[1])
     plt.xlabel(r"$t(s)$", fontsize=14)
     plt.ylabel(r"$\psi (blue) \qquad \delta (orange)$", fontsize=14)
     plt.title(r"ZigZag Maneuver with $\pm 20^{\circ}$")
@@ -240,112 +250,130 @@ def plot_r(t: List[float]):
 def free_flow_test(vessel: Dict[str, float]):
 
     fig = plt.figure()
-    fig.patch.set_facecolor("#212529")
+    #fig.patch.set_facecolor("#212529")
     ax: plt.Axes = fig.add_subplot(1, 1, 1)
+    
+    plt.xlabel(r"$x_0$", fontsize=14)
+    #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/vessel["Lpp"])) 
+    #ax.xaxis.set_major_formatter(ticks)
+    
+    plt.ylabel(r"$y_0$", fontsize=14)
+    #ax.yaxis.set_major_formatter(ticks)
 
-    def deg(a): return a*180/math.pi
+    
+    def rad(a): return a/180*math.pi
 
     timestep = 0
     twopi = 2*math.pi
 
-    head = 0.0
-
     qx, qy = np.linspace(-500, 500, 11), np.linspace(-500, 500, 11)
-
-    agx, agy = 0.0, 0.0
 
     # Length and Breadth of the simulated vessel
     L, B = vessel["Lpp"], vessel["B"]
 
-    ivs = np.array(
+    ivs_reset = np.array(
         [
             5.0,  # Longitudinal vessel speed [m/s]
             0.0,  # Lateral vessel speed [m/s]
             0.0,  # Yaw rate acceleration [rad/s]
-            deg(10),  # Rudder angle [rad]
-            5.0  # Propeller revs [s⁻¹]
+            0.0,  # Rudder angle [rad]
+            6.0  # Propeller revs [s⁻¹]
         ]
     )
-    nps = ivs[-1]
+    nps = ivs_reset[-1]    
+    
+    delta_list_deep = np.concatenate(
+        [np.array([0.]),
+         np.linspace(0.0, 20, 10),
+         np.full(300-20, 20)]
+    )    
+    delta_list_shallow = np.concatenate(
+        [np.array([0.]),
+         np.linspace(0.0, 20, 10),
+         np.full(600-20, 20)]
+    )
+    
+    deltas = [delta_list_shallow,delta_list_deep]
+    
+    colors = ["#9b2226","#001219"]
+    d = vessel["d"]
+    depths = [d*1.2,None]
 
-    while True:
-        fl_psi = math.pi
+    for color,depth,dl in zip(colors,depths,deltas):
+        
+        agx, agy = 0.0, 0.0
+        head = 0.0
+        timestep = 0
+        ivs = ivs_reset
+        plt.grid(ls=":")
+        
+        for d in range(len(dl)-1):
+            fl_psi = math.pi
+            
+            ivs[3] = rad(dl[d+1])
 
-        sol = step(
-            X=ivs,
-            params=vessel,
-            psi=head,
-            nps_old=nps,
-            delta_old=deg(10),
-            fl_psi=fl_psi,
-            fl_vel=10.0,
-            water_depth=6.0,
-            sps=1,
-            atol=1e-6,rtol=1e-6
-        )
+            sol = step(
+                X=ivs,
+                params=vessel,
+                psi=head,
+                nps_old=nps,
+                delta_old=rad(dl[d]),
+                fl_psi=None,
+                fl_vel=None,
+                water_depth=depth,
+                sps=1,
+                atol=1e-6,rtol=1e-6
+            )
 
-        timestep += 1
-        print(round(float(ang_diff(head, fl_psi)*180/math.pi), 3), timestep)
+            timestep += 1
 
-        # Vel in x and y direction (m/s), angular turning rate (rad/s)
-        u, v, r, _, _ = sol
+            # Vel in x and y direction (m/s), angular turning rate (rad/s)
+            u, v, r, _, _ = sol
 
-        # Transform to earth-fixed coordinate system
+            # Transform to earth-fixed coordinate system
 
-        head =  (head + r) % twopi
-        vy = math.cos(head) * u - math.sin(head) * v
-        vx = math.sin(head) * u + math.cos(head) * v
+            head =  (head + r) % twopi
+            vy = math.cos(head) * u - math.sin(head) * v
+            vx = math.sin(head) * u + math.cos(head) * v
 
-        agx += vx
-        agy += vy
+            agx += vx
+            agy += vy
 
-        anchor = agx - B/2, agy - L/2
+            anchor = agx - B/2, agy - L/2
 
-        # Set current solution as next initial values
-        ivs = np.hstack(sol)
+            # Set current solution as next initial values
+            ivs = np.hstack(sol)
 
-        # Rectangle of the heading transformed vessel
-        vessel_rect = Rectangle(anchor,
-                                width=vessel["B"],
-                                height=vessel["Lpp"],
-                                rotation_point="center",
-                                angle=((2*math.pi)-head)*180/math.pi,
-                                color="black")
+            # Rectangle of the heading transformed vessel
+            vessel_rect = Rectangle(anchor,
+                                    width=vessel["B"],
+                                    height=vessel["Lpp"],
+                                    rotation_point="center",
+                                    angle=((2*math.pi)-head)*180/math.pi,
+                                    edgecolor=to_rgba(color,1),
+                                    facecolor = to_rgba(color,0.1))
 
-        ax.clear()
-        ax.axhline(y=0, color='r', linestyle='-')
-        ax.axvline(x=0, color='r', linestyle='-')
-        ax.quiver(qx, qy,
-                  np.full((11, 11), math.sin(fl_psi)),
-                  np.full((11, 11), math.cos(fl_psi)),
-                  scale=20, headwidth=2)
-        ax.add_patch(vessel_rect)
-        plt.pause(0.01)
-
-
-def abs_ang_diff(a1: float, a2: float) -> float:
-    """Relative angle difference for an angle range of [0,2*pi]
-
-    Args:
-        a1 (float): Angle in radians or degrees
-        a2 (float): Angle in radians or degrees
-
-    Returns:
-        float: absolute diff in angles or degs
-    """
-    def deg(a): return a*180/math.pi
-
-    a1, a2 = deg(a1), deg(a2)
-    a = a1-a2
-    a = (a+180) % 360-180
-
-    return a/180*math.pi
-
-
-def ang_diff(head, str_dir):
-
-    twopi = 2*math.pi
-    return (str_dir - head) % twopi
-
-
-free_flow_test(kvlcc2)
+            #ax.clear()
+            # ax.quiver(qx, qy,
+            #           np.full((11, 11), math.sin(fl_psi)),
+            #           np.full((11, 11), math.cos(fl_psi)),
+            #           scale=20, headwidth=2)
+            if timestep % 4 == 0:
+                ax.add_patch(vessel_rect)
+                
+            print(timestep,depth,color)
+    
+    plt.xlim(-20,350)
+    plt.ylim(-70,300)
+    
+    handles, _ = ax.get_legend_handles_labels()
+    shallow = Patch(color=colors[0], 
+                 label=r"h/T = 1.2")
+    deep = Patch(color=colors[1], 
+                 label=r"h/T = $\infty$")
+    
+    handles.append(shallow)
+    handles.append(deep)
+    plt.legend(handles=handles)
+    
+    plt.show()
