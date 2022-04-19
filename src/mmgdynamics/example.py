@@ -1,9 +1,18 @@
 import json
+import matplotlib
 import numpy as np
 import calibrated_vessels as cvs
 
 from maneuvers import *
 from mmgdynamics.dynamics import calibrate
+
+matplotlib.rcParams['font.family'] = ["Noto Sans CJK TC", 'sans-serif']
+
+font = {'weight': 'bold',
+        'size': 14}
+
+matplotlib.rc('font', **font)
+
 
 """In here you find some basic tests to validate the 
     MMG model.
@@ -31,30 +40,32 @@ FUb = {
 }
 
 # Some initial values
-ivs = np.array([3.0, # Longitudinal vessel speed [m/s]
+ivs = np.array([7.0, # Longitudinal vessel speed [m/s]
                 0.0, # Lateral vessel speed [m/s]
                 0.0, # Yaw rate acceleration [rad/s]
                 0.0, # Rudder angle [rad]
-                1.0] # Propeller revs [s⁻¹]
+                6.0] # Propeller revs [s⁻¹]
                )
 
 # Uncomment to calibrate a vessel from the minimal dict above
 #vessel = calibrate(FUb,rho = 1000)
 
 # Use a pre-calibrated vessel
-vessel = cvs.seiunmaru
+vessel = cvs.kvlcc2
 
-ZIGZAG: bool = False
+ZIGZAG: bool = True
 
 iters = 1000
-s = turning_maneuver(ivs, vessel, iters, "starboard")
-p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=20)
-q = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10)
-plot_trajecory([s, p, q], vessel)
+#s = turning_maneuver(ivs, vessel, iters, "starboard")
+#p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=20)
+#q = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10)
+#plot_trajecory([s, p, q], vessel)
 #plot_r(p)
 
+free_flow_test(vessel)
+
 if ZIGZAG:
-    z, l = zigzag_maneuver(ivs, vessel, rise_time=30, max_deg=20)
+    z, l = zigzag_maneuver(ivs, vessel, rise_time=10, max_deg=10,wd=5)
     plot_zigzag(z, l)
 
 # Print the vessel dict to output
