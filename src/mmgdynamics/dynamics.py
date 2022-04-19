@@ -66,7 +66,12 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: dict, psi:float,
         r_dash = r * p["Lpp"] / U  # Non-dimensionalized yaw rate
 
     # Redefine
-    w_P = p["w_P0"] * math.exp(-4.0 * (beta - (p["x_P"]/p["Lpp"]) * r_dash)**2)
+    beta_P = beta - (p["x_P"]/p["Lpp"]) * r_dash
+    if not any(c in p for c in ["C_1","C_2_plus","C_2_minus"]):
+        w_P = p["w_P0"] * math.exp(-4.0 * (beta_P)**2)
+    else:
+        C_2 = p["C_2_plus"] if beta_P >= 0 else p["C_2_minus"]
+        w_P = -(1+(1-math.exp(-p["C_1"]*abs(beta_P))*(C_2-1))*(1-p["w_P0"]))+1
 
     if nps == 0.0:  # No propeller movement, no advance ratio
         J = 0.0
