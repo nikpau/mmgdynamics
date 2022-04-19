@@ -38,7 +38,8 @@ my_vessel = {
 
 ### Extension for currents
 
-The angle of attack of currents is set as the angle between the vessel heading and and the current heading as seen from the global frame. Positive angles attack from starborard.
+Current forces are calculated according to [Budak and Beji, 2020](https://doi.org/10.1016/j.oceaneng.2020.108126)
+The angle of attack for currents is set as an angle from the global reference frame. 0° current are parallel to the x-axis.
 
 ## Examples
 
