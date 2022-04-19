@@ -137,6 +137,9 @@ kvlcc2 = {
     "k_0":          0.2931, # Same value as "J_int" | Propeller open water coefficients. 
     "k_1":         -0.2753,
     "k_2":         -0.1359,
+    "C_1":          2.0,
+    "C_2_plus":     1.6,
+    "C_2_minus":    1.1,
     "l_R":         -0.710, # correction of flow straightening factor to yaw-rate
     "gamma_R_plus": 0.640, # Flow straightening coefficient for positive rudder angles
     "gamma_R_minus":0.395, # Flow straightening coefficient for negative rudder angles
@@ -188,7 +191,10 @@ kvlcc2_full = {
     "D_p":          9.86, # Diameter of propeller (m)
     "k_0":          0.2931, # Same value as "J_int" | Propeller open water coefficients. 
     "k_1":         -0.2753,
-    "k_2":         -0.1359,
+    "k_2":         -0.1359,    
+    "C_1":          2.0,
+    "C_2_plus":     1.6,
+    "C_2_minus":    1.1,
     "l_R":         -0.710, # correction of flow straightening factor to yaw-rate
     "gamma_R_plus": 0.640, # Flow straightening coefficient for positive rudder angles
     "gamma_R_minus":0.395, # Flow straightening coefficient for negative rudder angles
