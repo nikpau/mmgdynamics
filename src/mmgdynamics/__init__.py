@@ -11,7 +11,7 @@ from .dynamics import (
 )
 
 
-__version__ = "1.0.3"
+__version__ = "1.0.4"
 __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
 __all__ = ["step"]
 
