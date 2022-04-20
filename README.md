@@ -44,3 +44,19 @@ The angle of attack for currents is set as an angle from the global reference fr
 ## Examples
 
 You can find common test cases for vessel maeuvering such as the ZigZag or turning maneuver test in the `example.py` file. In there you also find the definition and use of the minimal dict from above.
+
+
+## Citation
+
+If you use this code in one of your projects or papers, please cite it as follows.
+
+```bibtex
+@misc{mmgdynamics,
+  author = {Niklas Paulig},
+  title = {MMG standard model for ship maneuvering},
+  year = {2022},
+  publisher = {GitHub},
+  journal = {GitHub Repository},
+  howpublished = {\url{https://github.com/nikpau/mmgdynamics}}
+}
+```
