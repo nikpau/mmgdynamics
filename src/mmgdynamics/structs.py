@@ -1,6 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Optional
-import calibrated_vessels as cvs
+from typing import Optional
 
 @dataclass
 class Vessel:
@@ -92,8 +91,3 @@ class MinimalVessel:
     x_G: Optional[float] = None # X-Coordinate of the center of gravity (m)
     w_P0: Optional[float] = None # Wake fraction coefficient
     t_P: Optional[float] = None # Thrust deduction factor
-
-
-
-kvlcc = Vessel(**cvs.kvlcc2)
-print(kvlcc.__repr__)
