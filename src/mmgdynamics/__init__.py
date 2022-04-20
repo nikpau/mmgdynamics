@@ -5,6 +5,8 @@ from warnings import warn
 from typing import Optional, Any
 from scipy.integrate import solve_ivp
 
+from .structs import Vessel
+
 from .dynamics import (
     LogicError, shallow_water_hdm,
     mmg_dynamics
@@ -16,7 +18,7 @@ __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
 __all__ = ["step"]
 
 
-def step(*, X: np.ndarray,params: dict, sps: float, nps_old: float, 
+def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps_old: float, 
          delta_old: float, psi: float, fl_psi: Optional[float] = None,
          fl_vel: Optional[float] = None, water_depth: Optional[float] = None, 
          debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5,
@@ -58,19 +60,19 @@ def step(*, X: np.ndarray,params: dict, sps: float, nps_old: float,
     # Correct for shallow water if a water depth is given. 
     # If none is given, open water with infinite depth is assumed
     if water_depth is not None:
-        if water_depth < params["d"]:
+        if water_depth < vessel.d:
             raise LogicError(
                 "Water depth cannot be less than ship draft.\n"
-                "Water depth:{} | Ship draft: {}".format(water_depth, params["d"])
+                "Water depth:{} | Ship draft: {}".format(water_depth, vessel.d)
                 )
-        sh_params = copy.deepcopy(params) # params is a pointer to the underlying array. But we need a new one
-        shallow_water_hdm(sh_params, water_depth)
+        sh_vessel = copy.deepcopy(vessel) # params is a pointer to the underlying array. But we need a new one
+        shallow_water_hdm(sh_vessel, water_depth)
 
     solution = solve_ivp(fun=mmg_dynamics,
                          t_span=(float(0), float(sps)), # Calculate the system dynamics for this time span
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
-                         args=(params if water_depth is None else sh_params, # Order is important! Do not change
+                         args=(vessel if water_depth is None else sh_vessel, # Order is important! Do not change
                             psi,
                             fl_psi,fl_vel, 
                             nps_old, delta_old),

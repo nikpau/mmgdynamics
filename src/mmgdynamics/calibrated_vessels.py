@@ -34,7 +34,7 @@ seiunmaru = {
     "kappa":        0.676, # An experimental constant for expressing "u_R"
     "A_R":          13.405, # Moveable rudder area
     "epsilon":      1.033, # Ratio of wake fraction at propeller and rudder positions ((1 - w_R) / (1 - w_P))
-    "A_R/Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
+    "A_R_Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
     "f_alpha":      2.88, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
     "rho":          1000, # Water density of freshwater
     "t_R":          0.341, # Steering resistance deduction factor (Yoshimura and Masumoto (2012))
@@ -88,14 +88,13 @@ GMS1 = {
     "kappa":        0.475, # An experimental constant for expressing "u_R"
     "A_R":          4.402, # Moveable rudder area
     "epsilon":      2.467, # Ratio of wake fraction at propeller and rudder positions ((1 - w_R) / (1 - w_P))
-    "A_R/Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
+    "A_R_Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
     "f_alpha":      2.45, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
     "rho":          1000, # Water density of freshwater
     "t_R":          0.39, # Steering resistance deduction factor (Yoshimura and Masumoto (2012))
     "t_P":          0.2, # Thrust deduction factor. BAW(2020)
     "x_H_dash":    -0.4, # Longitudinal coordinate of acting point of the additional lateral force (Yoshimura and Masumoto (2012))
     "d":            1.631, # Ship draft (Tiefgang)
-    "k_s":          0.2, # Rauhigkeit Sohle [m]
     "m_x_dash":     0.009, # Added masses in x direction (m*0.05)(Clarke et. al.(1983))
     "m_y_dash":     0.0423, # Added mass in y direction (m*0.2261) (Zhou et. al.(1983))
     "J_z_dash":     1.121e-6,# Added moment of inertia (m* 0.0724) (Zhou et. al.(1983))
@@ -147,7 +146,7 @@ kvlcc2 = {
     "kappa":        0.50, # An experimental constant for expressing "u_R"
     "A_R":          4.5, # Moveable rudder area
     "epsilon":      1.09, # Ratio of wake fraction at propeller and rudder positions ((1 - w_R) / (1 - w_P))
-    "A_R/Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
+    "A_R_Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
     "f_alpha":      2.747, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
     "rho":          1000, # Water density of freshwater
     "t_R":          0.387, # Steering resistance deduction factor
@@ -202,7 +201,7 @@ kvlcc2_full = {
     "kappa":        0.50, # An experimental constant for expressing "u_R"
     "A_R":          112.5, # Moveable rudder area
     "epsilon":      1.09, # Ratio of wake fraction at propeller and rudder positions ((1 - w_R) / (1 - w_P))
-    "A_R/Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
+    "A_R_Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
     "f_alpha":      2.747, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
     "rho":          1000, # Water density of freshwater
     "t_R":          0.387, # Steering resistance deduction factor

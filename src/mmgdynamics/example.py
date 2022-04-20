@@ -4,6 +4,7 @@ import numpy as np
 import calibrated_vessels as cvs
 
 from maneuvers import *
+from mmgdynamics.structs import Vessel
 from mmgdynamics.dynamics import calibrate
 
 matplotlib.rcParams['font.family'] = ["Noto Sans CJK TC", 'sans-serif']
@@ -51,7 +52,7 @@ ivs = np.array([7.0, # Longitudinal vessel speed [m/s]
 #vessel = calibrate(FUb,rho = 1000)
 
 # Use a pre-calibrated vessel
-vessel = cvs.kvlcc2
+vessel = Vessel(**cvs.kvlcc2)
 
 ZIGZAG: bool = True
 
@@ -69,4 +70,4 @@ if ZIGZAG:
     plot_zigzag(z, l)
 
 # Print the vessel dict to output
-print(json.dumps(vessel,sort_keys=True, indent=4))
+print(json.dumps(vessel.__dict__,sort_keys=True, indent=4))

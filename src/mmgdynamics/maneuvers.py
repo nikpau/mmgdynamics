@@ -9,9 +9,10 @@ from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch, Rectangle
 
 from mmgdynamics import step
+from mmgdynamics.structs import Vessel
 
 
-def turning_maneuver(ivs: np.ndarray, vessel: dict,
+def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
                      time: int, dir: str = "starboard",
                      maxdeg: int = 20, water_depth: float = None) -> np.ndarray:
     """
@@ -103,7 +104,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: dict,
     return res
 
 
-def plot_trajecory(t: List[np.ndarray], vessel: dict) -> None:
+def plot_trajecory(t: List[np.ndarray], vessel: Vessel) -> None:
     """Plot trajecories 
 
     Args:
@@ -115,7 +116,7 @@ def plot_trajecory(t: List[np.ndarray], vessel: dict) -> None:
     plt.figure(figsize=(16, 10))
 
     for tr in t:
-        plt.plot(tr[1]/vessel["Lpp"], tr[0]/vessel["Lpp"], linewidth=2.5)
+        plt.plot(tr[1]/vessel.Lpp, tr[0]/vessel.Lpp, linewidth=2.5)
 
     # This is just for the arrows depicting the flow direction
     # For now this is just added manually
@@ -166,7 +167,7 @@ def build_delta_zigzag(rise_time: int = 20, delta_max: float = 20.) -> np.ndarra
     return delta_zigzag, len(delta_zigzag)
 
 
-def zigzag_maneuver(ivs: np.ndarray, vessel: dict, 
+def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel, 
                     max_deg: int, rise_time: int, wd: Optional[float] = None) -> np.ndarray:
     """Perform ZigZag maneuver
 
@@ -247,14 +248,14 @@ def plot_r(t: List[float]):
     plt.show()
 
 
-def free_flow_test(vessel: Dict[str, float]):
+def free_flow_test(vessel:Vessel):
 
     fig = plt.figure()
     #fig.patch.set_facecolor("#212529")
     ax: plt.Axes = fig.add_subplot(1, 1, 1)
     
     plt.xlabel(r"$x_0$", fontsize=14)
-    #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/vessel["Lpp"])) 
+    #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/vessel.Lpp)) 
     #ax.xaxis.set_major_formatter(ticks)
     
     plt.ylabel(r"$y_0$", fontsize=14)
@@ -269,7 +270,7 @@ def free_flow_test(vessel: Dict[str, float]):
     qx, qy = np.linspace(-500, 500, 11), np.linspace(-500, 500, 11)
 
     # Length and Breadth of the simulated vessel
-    L, B = vessel["Lpp"], vessel["B"]
+    L, B = vessel.Lpp, vessel.B
 
     ivs_reset = np.array(
         [
@@ -296,7 +297,7 @@ def free_flow_test(vessel: Dict[str, float]):
     deltas = [delta_list_shallow,delta_list_deep]
     
     colors = ["#9b2226","#001219"]
-    d = vessel["d"]
+    d = vessel.d
     depths = [d*1.2,None]
 
     for color,depth,dl in zip(colors,depths,deltas):
@@ -346,8 +347,8 @@ def free_flow_test(vessel: Dict[str, float]):
 
             # Rectangle of the heading transformed vessel
             vessel_rect = Rectangle(anchor,
-                                    width=vessel["B"],
-                                    height=vessel["Lpp"],
+                                    width=vessel.B,
+                                    height=vessel.Lpp,
                                     rotation_point="center",
                                     angle=((2*math.pi)-head)*180/math.pi,
                                     edgecolor=to_rgba(color,1),
