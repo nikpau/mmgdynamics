@@ -18,22 +18,31 @@ The dynamics of the system can be found in the `dynamics.py` file. The model can
 
 In order to calibrate a vessel that is not present in the `calibrated_vessels.py` file, you can define a minimal dict with basic information about the vessel and use `calibrate()` to make it usable in the `step()` function. Several empirical formulas will be used to estimate the relevant hydrodynamic derivatives for your vessel and return back a dict which can be used as an input to the `step()` function.
 
-#### Form of the dict:
+#### Calibration process:
+
+Under `src/structs.py` you find the dataclasses responsible for modeling the vessel objects. For using a minmal dict as a vessel, you must define it as seen below and then pass it into the `calibrate()` function which returns a full vessel object
 
 The empirical estimations need at least the following information:
 
 ```python
+from mmgdynamics.structs import MinimalVessel
+from mmgdynamics.dynamics import calibrate
+
 my_vessel = {
   "m":        0.0, # Vessel displacement [m³]
   "B":        0.0, # Vessel Breadth (width)
   "Lpp":      0.0, # Length between perpendiculars
   "C_b":      0.0, # Block coefficient (< 0.8)
-  "t_P":      0.0, # Thrust deduction factor
   "D_p":      0.0, # Propeller Diameter
   "eta":      0.0, # Ratio of propeller diameter to rudder span
   "f_alpha":  0.0  # Rudder lift gradient coefficient 
                    # (If not given you will be asked for the rudder aspect ratio)
 }
+
+# To create a complete vessel object, you must pass
+# the minimal dict and the water density of your environment 
+# into the calibrate function as a minimal Vessel:
+full_vessel = calibrate(MinimalVessel(**my_vessel),rho = 1000)
 ```
 
 ### Extension for currents
