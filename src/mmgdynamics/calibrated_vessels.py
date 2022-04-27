@@ -127,11 +127,11 @@ kvlcc2 = {
     "Lpp":          64, # Length over pependiculars (m)
     "B":            11.6, # Overall width
     "m":            2500.8*1000, # Mass of ship as calculated by ▽*rho (displacement * water density)
-    "w_P0":         0.40, # Assumed wake fraction coefficient
+    "w_P0":         0.35, # Assumed wake fraction coefficient
     "J_int":        0.4, # Intercept for the calculation of K_T (https://doi.org/10.1615/ICHMT.2012.ProcSevIntSympTurbHeatTransfPal.500)
     "J_slo":       -0.5, # Slope for the calculation of K_T
     "x_G":          2.24, # X-Coordinate of the center of gravity (m)
-    "x_P":         -32, # X-Coordinate of the propeller (-0.5*Lpp)
+    "x_P":         -32.0, # X-Coordinate of the propeller (-0.5*Lpp)
     "D_p":          1.972, # Diameter of propeller (m)
     "k_0":          0.2931, # Same value as "J_int" | Propeller open water coefficients. 
     "k_1":         -0.2753,
@@ -172,7 +172,7 @@ kvlcc2 = {
     "N_vvr_dash":  -0.294, # Hull derivatives
     "N_vrr_dash":   0.055, # Hull derivatives
     "N_rrr_dash":  -0.013, # Hull derivatives
-    "I_zG":         640_204_800, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
+    "I_zG":         640204800, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
     "J_z_dash":     0.011, # Added moment of inertia coefficient
     "a_H":          0.312 # Rudder force increase factor
 }
