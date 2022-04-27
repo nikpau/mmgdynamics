@@ -7,11 +7,10 @@ from scipy.integrate import solve_ivp
 
 from .structs import Vessel
 
-from .dynamics import (
-    LogicError, shallow_water_hdm,
-    mmg_dynamics
-)
+from .dynamics import shallow_water_hdm,mmg_dynamics
 
+class LogicError(Exception):
+    pass
 
 __version__ = "1.0.4"
 __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
