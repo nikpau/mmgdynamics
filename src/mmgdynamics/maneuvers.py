@@ -1,7 +1,7 @@
 
 import math
 from turtle import color
-from typing import Dict, List, Optional
+from typing import Optional, Sequence
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -9,6 +9,7 @@ from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch, Rectangle
 
 from mmgdynamics import step
+import mmgdynamics
 from mmgdynamics.structs import Vessel
 
 
@@ -72,7 +73,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
 
         # Solve the ODE system for one second at a time
         sol = step(X=ivs,
-                   params=vessel,
+                   vessel=vessel,
                    sps=1,
                    nps_old=ivs[4],
                    delta_old=delta_list[s],
@@ -104,7 +105,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
     return res
 
 
-def plot_trajecory(t: List[np.ndarray], vessel: Vessel) -> None:
+def plot_trajecory(t: Sequence[np.ndarray], vessel: Vessel) -> None:
     """Plot trajecories 
 
     Args:
@@ -168,7 +169,7 @@ def build_delta_zigzag(rise_time: int = 20, delta_max: float = 20.) -> np.ndarra
 
 
 def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel, 
-                    max_deg: int, rise_time: int, wd: Optional[float] = None) -> np.ndarray:
+                    max_deg: int, rise_time: int, wd: Optional[Sequence[float]] = None) -> np.ndarray:
     """Perform ZigZag maneuver
 
     Args:
@@ -184,59 +185,82 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel,
     delta_list, len_list = build_delta_zigzag(
         rise_time=rise_time, delta_max=max_deg)
     delta_list = np.concatenate([np.array([0.]), delta_list])
-    res = np.empty(len_list)
-    psi = 0.
+    res = [np.empty(len_list)] * len(wd)
 
-    for s in range(len_list):
+    reset_ivs = ivs
 
-        # Set r to the next value in our list
-        ivs[3] = delta_list[s+1]
+    for idx, depth in enumerate(wd):
 
-        # Solve the ODE system for one second at a time
-        sol = step(X=ivs,
-                   params=vessel,
-                   sps=.1,
-                   psi=psi,
-                   nps_old=ivs[4],
-                   delta_old=delta_list[s],
-                   fl_vel=None,
-                   fl_psi=None,
-                   water_depth=wd,
-                   atol=1e-6,
-                   rtol=1e-6)
+        ivs = reset_ivs
+        psi = 0.
+        for s in range(len_list):
 
-        # Angular turning rate (rad/s)
-        _, _, r, _, _ = sol
+            # Set r to the next value in our list
+            ivs[3] = delta_list[s+1]
 
-        psi += r
+            # Solve the ODE system for one second at a time
+            sol = step(X=ivs,
+                    vessel=vessel,
+                    sps=1,
+                    psi=psi,
+                    nps_old=ivs[4],
+                    delta_old=delta_list[s],
+                    fl_vel=None,
+                    fl_psi=None,
+                    water_depth=depth,
+                    atol=1e-6,
+                    rtol=1e-3)
 
-        res[s] = psi
+            # Angular turning rate (rad/s)
+            _, _, r, _, _ = sol
 
-        ivs = sol.flatten()
+            psi += r
+
+            res[idx][s] = psi
+
+            ivs = np.hstack(sol)
+
+        res[idx] = res[idx] * 180/np.pi
 
     return res, delta_list
 
 
 def plot_zigzag(t: list, delta_list: np.ndarray) -> None:
-
-    t = t * 180/np.pi
+    
     delta_list = delta_list * 180/np.pi
     delta_list = np.delete(delta_list, 0)
     
     colors = ["#9b2226","#001219"]
 
-    plt.figure(figsize=(16, 10))
-    plt.plot(np.arange(len(t)), t, linewidth=2.5, color=colors[0])
-    plt.plot(np.arange(len(t)), delta_list, linewidth=2.5, color=colors[1])
-    plt.xlabel(r"$t(s)$", fontsize=14)
-    plt.ylabel(r"$\psi (blue) \qquad \delta (orange)$", fontsize=14)
-    plt.title(r"ZigZag Maneuver with $\pm 20^{\circ}$")
+
+    fig = plt.figure(figsize=(16, 5))
+    #fig.patch.set_facecolor("#212529")
+    ax: plt.Axes = fig.add_subplot(1, 1, 1)
+
+    for i,v in enumerate(t):
+        plt.plot(np.arange(len(v)), v, linewidth=4.5, color=colors[i])
+
+    plt.plot(np.arange(len(t[0])), delta_list, linewidth=4.5, color="#005f73")
+    plt.xlabel(r"$Time [s]$", fontsize=14)
+    plt.ylabel(r"$Angle [^{\circ}]$", fontsize=14)
+    plt.title(r"$-10/-10Z$",loc="left")
+
     plt.grid(True)
-    # plt.savefig(PLOTDIR+"/"+"zigzag.pdf")
-    plt.show()
+
+    handles, _ = ax.get_legend_handles_labels()
+    shallow = Patch(color=colors[0], 
+                 label=r"h/T = 1.2")
+    deep = Patch(color=colors[1], 
+                 label=r"h/T = $\infty$")
+    
+    handles.append(shallow)
+    handles.append(deep)
+    plt.legend(handles=handles)
+
+    plt.savefig("zigzag1010.pdf")
 
 
-def plot_r(t: List[float]):
+def plot_r(t: Sequence[float]):
     plt.figure(figsize=(16, 10))
     plt.plot(np.arange(len(t[2])), t[2], linewidth=2.5)
     plt.xlabel(r"$t(s)$", fontsize=14)
@@ -315,7 +339,7 @@ def free_flow_test(vessel:Vessel):
 
             sol = step(
                 X=ivs,
-                params=vessel,
+                vessel=vessel,
                 psi=head,
                 nps_old=nps,
                 delta_old=rad(dl[d]),
@@ -377,4 +401,127 @@ def free_flow_test(vessel:Vessel):
     handles.append(deep)
     plt.legend(handles=handles)
     
+    plt.show()
+
+def current_test(vessel: Vessel, iters: int,fl_psi: float) -> None:
+
+    fig = plt.figure()
+    #fig.patch.set_facecolor("#212529")
+    ax: plt.Axes = fig.add_subplot(1, 1, 1)
+    
+    plt.xlabel(r"$x_0$", fontsize=14)
+    #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/vessel.Lpp)) 
+    #ax.xaxis.set_major_formatter(ticks)
+    
+    plt.ylabel(r"$y_0$", fontsize=14)
+    #ax.yaxis.set_major_formatter(ticks)
+
+    plt.grid()
+    
+    def rad(a): return a/180*math.pi
+
+    timestep = 0
+    twopi = 2*math.pi
+
+    agx, agy = 0.0, 0.0
+    head = 0
+
+    qx, qy = np.linspace(-400, 400, 11), np.linspace(-400, 400, 11)
+
+    # Length and Breadth of the simulated vessel
+    L, B = vessel.Lpp, vessel.B
+
+    ivs = np.array(
+        [
+            2.0,  # Longitudinal vessel speed [m/s]
+            0.0,  # Lateral vessel speed [m/s]
+            0.0,  # Yaw rate acceleration [rad/s]
+            0.0,  # Rudder angle [rad]
+            2.0  # Propeller revs [s⁻¹]
+        ]
+    )
+    nps = ivs[-1]    
+    
+    colors = ["#9b2226","#001219"]
+        
+    for _ in range(iters):
+
+        sol = step(
+            X=ivs,
+            vessel=vessel,
+            psi=head,
+            nps_old=nps,
+            delta_old=0.0,
+            fl_psi=fl_psi,
+            fl_vel=1.0,
+            water_depth=None,
+            sps=1,
+            atol=1e-6,rtol=1e-3
+        )
+
+        timestep += 1
+
+        # Vel in x and y direction (m/s), angular turning rate (rad/s)
+        u, v, r, _, _ = sol
+
+        # Transform to earth-fixed coordinate system
+
+        head =  float((head + r) % twopi)
+        vy = math.cos(head) * u - math.sin(head) * v
+        vx = math.sin(head) * u + math.cos(head) * v
+
+        agx += vx
+        agy += vy
+
+        anchor = agx - B/2, agy - L/2
+
+        # Set current solution as next initial values
+        ivs = np.hstack(sol)
+
+        # Rectangle of the heading transformed vessel
+        vessel_rect = Rectangle(anchor,
+                                width=vessel.B,
+                                height=vessel.Lpp,
+                                rotation_point="center",
+                                angle=(twopi-head)*180/math.pi,
+                                edgecolor=colors[0],
+                                facecolor = to_rgba(colors[0],0.1))
+
+        ax.quiver(qx, qy,
+                  np.full((11, 11), -math.sin(fl_psi)),
+                  np.full((11, 11), -math.cos(fl_psi)),
+                  scale=20, headwidth=2)
+
+        if timestep % 2 == 0:
+            ax.add_patch(vessel_rect)
+
+        #print(timestep)
+    
+    plt.show()
+
+def static_current_test(vessel: Vessel, ang_list: Sequence[float]) -> None:
+
+    fig = plt.figure()
+    ax: plt.Axes = fig.add_subplot(1, 1, 1)
+    
+    plt.xlabel(r"Angle of attack for current (relative bow)$\gamma_c$", fontsize=14)
+
+    plt.grid(linestyle="-.")
+
+    colors = ["#9b2226","#001219","#94d2bd"]
+    cx,cy,cn = [], [], []
+        
+    for angle in ang_list:
+        cx.append(mmgdynamics.dynamics.C_X(angle))
+        cy.append(mmgdynamics.dynamics.C_Y(angle))
+        cn.append(mmgdynamics.dynamics.C_N(angle))
+
+    coefs = mmgdynamics.dynamics.COEFS
+
+    ax.plot(np.arange(len(ang_list)),cx,c=colors[2],lw=3,label=r"C_X")
+    ax.plot(np.arange(len(ang_list)),cy,c=colors[1],lw=3,label=r"C_Y")
+    ax.plot(np.arange(len(ang_list)),cn,c=colors[0],lw=3,label=r"C_N")
+
+    plt.legend()
+
     plt.show()

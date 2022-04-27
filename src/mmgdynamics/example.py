@@ -1,13 +1,13 @@
 import json
 import matplotlib
 import numpy as np
-import calibrated_vessels as cvs
+import mmgdynamics.calibrated_vessels as cvs
 
-from maneuvers import *
+from mmgdynamics.maneuvers import *
 from mmgdynamics.structs import Vessel
 from mmgdynamics.dynamics import calibrate
 
-matplotlib.rcParams['font.family'] = ["Noto Sans CJK TC", 'sans-serif']
+matplotlib.rcParams['font.family'] = ["Helevtica", 'sans-serif']
 
 font = {'weight': 'bold',
         'size': 14}
@@ -41,7 +41,7 @@ FUb = {
 }
 
 # Some initial values
-ivs = np.array([7.0, # Longitudinal vessel speed [m/s]
+ivs = np.array([4.0, # Longitudinal vessel speed [m/s]
                 0.0, # Lateral vessel speed [m/s]
                 0.0, # Yaw rate acceleration [rad/s]
                 0.0, # Rudder angle [rad]
@@ -54,7 +54,7 @@ ivs = np.array([7.0, # Longitudinal vessel speed [m/s]
 # Use a pre-calibrated vessel
 vessel = Vessel(**cvs.kvlcc2)
 
-ZIGZAG: bool = True
+ZIGZAG: bool = False
 
 iters = 1000
 #s = turning_maneuver(ivs, vessel, iters, "starboard")
@@ -63,10 +63,15 @@ iters = 1000
 #plot_trajecory([s, p, q], vessel)
 #plot_r(p)
 
-free_flow_test(vessel)
+#free_flow_test(vessel)
+angles = np.arange(180)
+angles = angles/180*np.pi
+current_test(vessel, 400, 90/180*math.pi)
+#static_current_test(vessel,angles)
+
 
 if ZIGZAG:
-    z, l = zigzag_maneuver(ivs, vessel, rise_time=10, max_deg=10,wd=5)
+    z, l = zigzag_maneuver(ivs, vessel, rise_time=5, max_deg=10,wd=[5,None])
     plot_zigzag(z, l)
 
 # Print the vessel dict to output
