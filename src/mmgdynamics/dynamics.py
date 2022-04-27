@@ -3,7 +3,7 @@ import numpy as np
 
 from .structs import MinimalVessel, Vessel
 
-from typing import Dict
+COEFS = []
 
 """
 Set up the System of ODEs for vessel maneuvering prediction after 
@@ -172,29 +172,27 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
 
     # Forces related to currents:
     if fl_vel is not None and fl_vel != 0.:
-
+        
         # Longitudinal velocity of current dependent on ship heading
-        u_c = fl_vel * math.cos(fl_psi - psi)
-        u_rc = (u - u_c)
+        u_c = -fl_vel * math.cos(fl_psi - psi)
 
         # Lateral velocity of current dependent on ship heading
         v_c = fl_vel * math.sin(fl_psi - psi)
-        v_rc = (v_m - v_c)
 
-        V_Rc = math.sqrt(u_rc**2 + v_rc**2)
-
-        gamma_rc = -math.atan2(v_rc,u_rc)
+        g_rc = g_rc_ang_diff(psi,fl_psi)
+        if t==0:
+            print(np.round((fl_psi - psi)*180/math.pi, 3))
 
         # Longitudinal current force
         A_Fc = p.B * p.d * p.C_b
-        X_C = 0.5 * p.rho * A_Fc * C_X(gamma_rc) * V_Rc**2
+        X_C = 0.5 * p.rho * A_Fc * C_X(g_rc) * abs(u_c) * u_c
 
         # Lateral current force
         A_Lc = p.Lpp * p.d * p.C_b
-        Y_C = 0.5 * p.rho * A_Lc * C_Y(gamma_rc) * V_Rc**2
+        Y_C = 0.5 * p.rho * A_Lc * C_Y(g_rc) * abs(v_c) * v_c
 
         # Current Moment
-        N_C = 0.5 * p.rho * A_Lc * p.Lpp * C_N(gamma_rc) * V_Rc**2
+        N_C = 0.5 * p.rho * A_Lc * p.Lpp * C_N(g_rc) * abs(v_c) * v_c
 
     else:
         X_C, Y_C, N_C = 0.0, 0.0, 0.0
@@ -226,6 +224,30 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
 
     return np.array([d_u, d_v, d_r, d_delta, d_nps])
 
+def g_rc_ang_diff(a1: float, a2: float) -> float:
+    """Angle difference for an angle range of [0,2*pi]
+    specifically for current coefs of DP models by 
+    Fossen, 2011 [p. 153]
+
+    Args:
+        a1 (float): Angle in radians
+        a2 (float): Angle in radians
+
+    Returns:
+        float: diff in angles [rad]
+    """
+
+    if abs(a1-a2) < math.pi:
+        if a1 <= a2:
+            z = abs(a1-a2)
+        else:
+            z = a2-a1
+    else:
+        if a1 < a2:
+            z = abs(a1-a2) - 2*math.pi
+        else:
+            z = 2*math.pi - abs(a1-a2)
+    return float(abs(z))
 
 def shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     """Correct the hydrodynamic derivatives and
@@ -296,20 +318,36 @@ def shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     v.J_z_dash *= Jzshallow
 
 
-def C_X(gamma_rc: float) -> float:
+def C_X(g_rc: float) -> float:
 
-    return -0.0665*gamma_rc**5 + 0.5228*gamma_rc**4 - 1.4365*gamma_rc**3 \
-    + 1.6024*gamma_rc**2 - 0.2967*gamma_rc - 0.4691
+    return (
+       -0.0665*g_rc**5 + 
+        0.5228*g_rc**4 - 
+        1.4365*g_rc**3 + 
+        1.6024*g_rc**2 - 
+        0.2967*g_rc - 
+        0.4691)
 
-def C_Y(gamma_rc: float) -> float:
 
-    return 0.1273*gamma_rc**4 - 0.802*gamma_rc**3 + 1.3216*gamma_rc**2\
-        - 0.1799*gamma_rc
+def C_Y(g_rc: float) -> float:
 
-def C_N(gamma_rc: float) -> float:
+    return (
+        0.1273*g_rc**4 - 
+        0.8020*g_rc**3 + 
+        1.3216*g_rc**2 - 
+        0.1799*g_rc)
 
-    return -0.014*gamma_rc**5 + 0.1131*gamma_rc**4 - 0.2757*gamma_rc**3\
-        + 0.1617*gamma_rc**2 + 0.0728*gamma_rc
+def C_N(g_rc: float) -> float:
+
+    return (
+       -0.0140*g_rc**5 + 
+        0.1131*g_rc**4 -
+        0.2757*g_rc**3 + 
+        0.1617*g_rc**2 + 
+        0.0728*g_rc)
+
+
+
 
 # In here all the important hydrodynamic derivatives are calculated via empirical
 # formulas from Suras and Sakir Bal (2019)
@@ -436,13 +474,9 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
         v.f_alpha = falpha
 
         print(
-            f"Aspect ration saved. Rudder lift coef calculated to be {falpha}")
+            f"Aspect ratio saved. Rudder lift coef calculated to be {falpha}")
 
     # Frictional resistance coefficent [ARBITRARY, no calculations so far]
     v.R_0_dash = 0.025
 
     return Vessel(**v.__dict__)
-
-
-class LogicError(Exception):
-    pass
