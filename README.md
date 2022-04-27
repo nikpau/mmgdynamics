@@ -17,6 +17,7 @@ The dynamics of the system can be found in the `dynamics.py` file. The model can
 ### Calibrate custom vessel
 
 In order to calibrate a vessel that is not present in the `calibrated_vessels.py` file, you can define a minimal dict with basic information about the vessel and use `calibrate()` to make it usable in the `step()` function. Several empirical formulas will be used to estimate the relevant hydrodynamic derivatives for your vessel and return back a dict which can be used as an input to the `step()` function.
+> Disclaimer: The quality of the empirical estimations for hydrodynamic derivatives vary greatly for different ships. Please consider comprehensive testing before using a custom vessel.
 
 #### Calibration process:
 
