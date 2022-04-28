@@ -175,7 +175,6 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
         v_c = fl_vel * math.sin(fl_psi - psi)
         v_rc = v_m - v_c
 
-        #g_rc = _g_rc_ang_diff(psi,fl_psi)
         g_rc = abs(-math.atan2(v_rc,u_rc))
 
         # Longitudinal current force
