@@ -87,6 +87,8 @@ class MinimalVessel:
     B: float # Overall width
     d: float # Ship draft (Tiefgang)
     eta: float # Ratio of propeller diameter to rudder span
+    A_R: float # Rudder Area
+    D_p: float # Propeller diameter
     f_alpha: Optional[float] = None # Rudder lift gradient coefficient
     x_G: Optional[float] = None # X-Coordinate of the center of gravity (m)
     w_P0: Optional[float] = None # Wake fraction coefficient
