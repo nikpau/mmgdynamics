@@ -346,7 +346,7 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     L, B, d, Cb, m = v.Lpp, v.B, v.d, v.C_b, v.m
 
     # X-Coordinate of the center of gravity (m)
-    if v.x_G is not None:
+    if v.x_G is None:
         v.x_G = float(0)
 
     # X-Coordinate of the propeller (assumed as -0.5*Lpp)
@@ -363,47 +363,58 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     v.m_x_dash = 0.05*v.m / nondim_M
     v.m_y_dash = (0.882-0.54*Cb*(1-1.6*d/B)-0.156*(1-0.673*Cb)*L/B +
                      0.826*((d*L)/(B**2))*(1-0.678*d/B)-0.638*Cb*((d*L)/(B**2))*(1-0.669*d/B))*v.m / nondim_M
-    v.J_z_dash = ((0.01*(33-76.85*Cb*(1-0.784*Cb)+3.43 *
-                     L/B*(1-0.63*Cb)))**2)*v.m / nondim_N
+    v.J_z_dash = (L/100*(33-76.85*Cb*(1-0.784*Cb)+3.43*L/B*(1-0.63*Cb)))**2*m/nondim_N
 
     # Hydrodynamic derivatives
     # Surge
-    v.X_vv_dash = 1.15*(Cb/(L/B)) - 0.18  # Yoshimura and Masumoto (2012)
+    #v.X_vv_dash = 1.15*(Cb/(L/B)) - 0.18  # Yoshimura and Masumoto (2012)
+    v.X_vv_dash = 0.0014-0.1975*d*(1-Cb)/B*L/d # Lee et. al. (1998)
     v.X_vvvv_dash = -6.68*(Cb/(L/B)) + 1.1  # Yoshimura and Masumoto (2012)
-    v.X_rr_dash = (-0.0027+0.0076*Cb*d/B)*L/d  # Lee et al. (1998)
-    v.X_vr_dash = v.m_y_dash - 1.91 * \
-        (Cb/(L/B)) + 0.08  # Yoshimura and Masumoto (2012)
+    #v.X_rr_dash = (-0.0027+0.0076*Cb*d/B)*L/d  # Lee et al. (1998)
+    v.X_rr_dash = (-0.0027+0.0076*Cb*d/B)*L/d # Lee et al. (1998)
+    #v.X_vr_dash = v.m_y_dash - 1.91 * (Cb/(L/B)) + 0.08  # Yoshimura and Masumoto (2012)
+    v.X_vr_dash = (m+0.1176*v.m_y_dash*(0.5+Cb))*L/d
 
     # Sway
-    v.Y_v_dash = -(0.5*math.pi*(2*d/L)+1.4*(Cb/(L/B))
-                      )  # Yoshimura and Masumoto (2012)
-    v.Y_vvv_dash = -0.185*L/B + 0.48  # Yoshimura and Masumoto (2012)
-    v.Y_r_dash = v.m_x_dash + 0.5*Cb*B/L  # Yoshimura and Masumoto (2012)
-    v.Y_rrr_dash = -0.051
-    v.Y_vrr_dash = -(0.26*(1-Cb)*L/B + 0.11)
-    v.Y_vvr_dash = -0.75  # TODO: Change this
+    #v.Y_v_dash = -(0.5*math.pi*(2*d/L)+1.4*(Cb/(L/B)))  # Yoshimura and Masumoto (2012)
+    v.Y_v_dash = -(0.5*math.pi*2*d/L+1.4*Cb*B/L) # Kijima et. al. (1990)
+    #v.Y_vvv_dash = -0.185*L/B + 0.48  # Yoshimura and Masumoto (2012)
+    v.Y_vvv_dash = (-0.6469*(1-Cb)*d/B+0.0027)*L/d # Lee et al. (1998)
+    #v.Y_r_dash = v.m_x_dash + 0.5*Cb*B/L  # Yoshimura and Masumoto (2012)
+    v.Y_r_dash = (-0.115*Cb*B/L+0.0024)*L/d # Lee et al. (1998)
+    #v.Y_rrr_dash = -0.051
+    v.Y_rrr_dash = (-0.233*Cb*d/B+0.0063)*L/d # Lee et al. (1998)
+    #v.Y_vrr_dash = -(0.26*(1-Cb)*L/B + 0.11)
+    v.Y_vrr_dash = -(5.95*d*(1-Cb)/d) # Kijima et. al. (1990)
+    #v.Y_vvr_dash = -0.75  # TODO: Change this
+    v.Y_vvr_dash = 1.5*d*Cb/B-0.65 # Kijima et. al. (1990)
 
     # Yaw
     v.N_v_dash = -2*d/L  # Yoshimura and Masumoto (2012)
-    v.N_vvv_dash = -(-0.69*Cb+0.66)  # Yoshimura and Masumoto (2012)
-    v.N_r_dash = -0.54*(2*d/L) + (2*d/L)**2  # Yoshimura and Masumoto (2012)
-    v.N_rrr_dash = ((0.25*Cb)/(L/B))-0.056  # Yoshimura and Masumoto (2012)
-    v.N_vrr_dash = -0.075*(1-Cb)*L/B-0.098  # Yoshimura and Masumoto (2012)
-    v.N_vvr_dash = ((1.55*Cb)/(L/B))-0.76  # Yoshimura and Masumoto (2012)
+    #v.N_vvv_dash = -(-0.69*Cb+0.66)  # Yoshimura and Masumoto (2012)
+    v.N_vvv_dash = (0.0348-0.5283*(1-Cb)*d/B)*L/d # Lee et al. (1998)
+    #v.N_r_dash = -0.54*(2*d/L) + (2*d/L)**2  # Yoshimura and Masumoto (2012)
+    v.N_r_dash = -0.54*2*d/L+(2*d/L)**2 # Kijima et. al. (1990)
+    #v.N_rrr_dash = ((0.25*Cb)/(L/B))-0.056  # Yoshimura and Masumoto (2012)
+    v.N_rrr_dash = (-0.0572+0.03*Cb*d/L)*L/d # Lee et al. (1998)
+    #v.N_vrr_dash = -0.075*(1-Cb)*L/B-0.098  # Yoshimura and Masumoto (2012)
+    v.N_vrr_dash = (0.5*d*Cb/B)-0.05 # Kijima et. al. (1990)
+    #v.N_vvr_dash = ((1.55*Cb)/(L/B))-0.76  # Yoshimura and Masumoto (2012)
+    v.N_vvr_dash = -(57.5*(Cb*B/L)**2-18.4*(Cb*B/L)+1.6 ) # Kijima et. al. (1990)
 
     # Wake coefficient
-    if v.w_P0 is not None:
+    if v.w_P0 is None:
         v.w_P0 = 0.5*Cb - 0.05
 
     # Thrust deduction factor
-    if v.t_P is not None:
+    if v.t_P is None:
         v.t_P = -0.27
 
     # Rudder force incease factor
     v.a_H = 0.627*Cb-0.153  # Quadvlieg (2013)
 
     # Longituinal acting point of longitudinal force
-    v.x_H_dash = -0.45  # Aoki et. al. (2006)
+    v.x_H_dash = -0.37  # Khanﬁr et al. (2011)
 
     # Steering resistance deduction factor
     v.t_R = 0.39  # Yoshimura and Masumoto (2012)
@@ -430,7 +441,7 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     v.J_slo = -0.5
 
     # Rudder aspect ratio
-    if v.f_alpha is not None:
+    if v.f_alpha is None:
         while True:
             asp = input(
                 "No rudder aspect ratio found. Please enter manually: ")
