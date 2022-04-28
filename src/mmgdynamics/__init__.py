@@ -7,7 +7,7 @@ from scipy.integrate import solve_ivp
 
 from .structs import Vessel
 
-from .dynamics import shallow_water_hdm,mmg_dynamics
+from .dynamics import _shallow_water_hdm,mmg_dynamics
 
 class LogicError(Exception):
     pass
@@ -64,8 +64,8 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps_old: float,
                 "Water depth cannot be less than ship draft.\n"
                 "Water depth:{} | Ship draft: {}".format(water_depth, vessel.d)
                 )
-        sh_vessel = copy.deepcopy(vessel) # params is a pointer to the underlying array. But we need a new one
-        shallow_water_hdm(sh_vessel, water_depth)
+        sh_vessel = copy.deepcopy(vessel)
+        _shallow_water_hdm(sh_vessel, water_depth)
 
     solution = solve_ivp(fun=mmg_dynamics,
                          t_span=(float(0), float(sps)), # Calculate the system dynamics for this time span
@@ -75,7 +75,7 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps_old: float,
                             psi,
                             fl_psi,fl_vel, 
                             nps_old, delta_old),
-                         method="RK45",
+                         method="DOP853",
                          rtol = rtol,
                          atol = atol,
                          **sol_options

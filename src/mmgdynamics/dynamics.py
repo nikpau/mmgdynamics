@@ -3,8 +3,6 @@ import numpy as np
 
 from .structs import MinimalVessel, Vessel
 
-COEFS = []
-
 """
 Set up the System of ODEs for vessel maneuvering prediction after 
 Yasukawa, H., Yoshimura, Y. (2015) Introduction of MMG standard method for ship maneuvering predictions.
@@ -16,11 +14,7 @@ from a set of initial conditions X for an arbitrary time horizon.
 """
 
 # Export only selected functions if used as wildcard import
-__all__ = [
-    "turning_maneuver", "zigzag_maneuver",
-    "plot_r", "plot_trajecory",
-    "plot_zigzag", "calilbrate"
-]
+__all__ = ["calilbrate"]
 
 # System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
 
@@ -175,24 +169,25 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
         
         # Longitudinal velocity of current dependent on ship heading
         u_c = -fl_vel * math.cos(fl_psi - psi)
+        u_rc = u - u_c
 
         # Lateral velocity of current dependent on ship heading
         v_c = fl_vel * math.sin(fl_psi - psi)
+        v_rc = v_m - v_c
 
-        g_rc = g_rc_ang_diff(psi,fl_psi)
-        if t==0:
-            print(np.round((fl_psi - psi)*180/math.pi, 3))
+        #g_rc = _g_rc_ang_diff(psi,fl_psi)
+        g_rc = -math.atan2(v_rc,u_rc)
 
         # Longitudinal current force
         A_Fc = p.B * p.d * p.C_b
-        X_C = 0.5 * p.rho * A_Fc * C_X(g_rc) * abs(u_c) * u_c
+        X_C = 0.5 * p.rho * A_Fc * _C_X(g_rc) * abs(u_rc) * u_rc
 
         # Lateral current force
         A_Lc = p.Lpp * p.d * p.C_b
-        Y_C = 0.5 * p.rho * A_Lc * C_Y(g_rc) * abs(v_c) * v_c
+        Y_C = 0.5 * p.rho * A_Lc * _C_Y(g_rc) * abs(v_rc) * v_rc
 
         # Current Moment
-        N_C = 0.5 * p.rho * A_Lc * p.Lpp * C_N(g_rc) * abs(v_c) * v_c
+        N_C = 0.5 * p.rho * A_Lc * p.Lpp * _C_N(g_rc) * abs(v_rc) * v_rc
 
     else:
         X_C, Y_C, N_C = 0.0, 0.0, 0.0
@@ -224,32 +219,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
 
     return np.array([d_u, d_v, d_r, d_delta, d_nps])
 
-def g_rc_ang_diff(a1: float, a2: float) -> float:
-    """Angle difference for an angle range of [0,2*pi]
-    specifically for current coefs of DP models by 
-    Fossen, 2011 [p. 153]
-
-    Args:
-        a1 (float): Angle in radians
-        a2 (float): Angle in radians
-
-    Returns:
-        float: diff in angles [rad]
-    """
-
-    if abs(a1-a2) < math.pi:
-        if a1 <= a2:
-            z = abs(a1-a2)
-        else:
-            z = a2-a1
-    else:
-        if a1 < a2:
-            z = abs(a1-a2) - 2*math.pi
-        else:
-            z = 2*math.pi - abs(a1-a2)
-    return float(abs(z))
-
-def shallow_water_hdm(v: Vessel, water_depth: float) -> None:
+def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     """Correct the hydrodynamic derivatives and
     hydrodynamic masses for shallow water conditions.
 
@@ -318,7 +288,7 @@ def shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     v.J_z_dash *= Jzshallow
 
 
-def C_X(g_rc: float) -> float:
+def _C_X(g_rc: float) -> float:
 
     return (
        -0.0665*g_rc**5 + 
@@ -329,15 +299,22 @@ def C_X(g_rc: float) -> float:
         0.4691)
 
 
-def C_Y(g_rc: float) -> float:
+def _C_Y(g_rc: float) -> float:
 
+    # return (
+    #     0.1273*g_rc**4 - 
+    #     0.8020*g_rc**3 + 
+    #     1.3216*g_rc**2 - 
+    #     0.1799*g_rc)
     return (
-        0.1273*g_rc**4 - 
-        0.8020*g_rc**3 + 
-        1.3216*g_rc**2 - 
-        0.1799*g_rc)
+      0.05930686*g_rc**4 -
+      0.37522028*g_rc**3 +
+      0.46812233*g_rc**2 +
+      0.39114522*g_rc -
+      0.00273578
+    )
 
-def C_N(g_rc: float) -> float:
+def _C_N(g_rc: float) -> float:
 
     return (
        -0.0140*g_rc**5 + 
@@ -345,12 +322,6 @@ def C_N(g_rc: float) -> float:
         0.2757*g_rc**3 + 
         0.1617*g_rc**2 + 
         0.0728*g_rc)
-
-
-
-
-# In here all the important hydrodynamic derivatives are calculated via empirical
-# formulas from Suras and Sakir Bal (2019)
 
 
 def calibrate(v: MinimalVessel, rho: float) -> Vessel:
