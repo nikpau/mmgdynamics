@@ -66,7 +66,7 @@ iters = 1000
 #free_flow_test(vessel)
 angles = np.arange(180)
 angles = angles/180*np.pi
-current_test(vessel, 400, 90/180*math.pi)
+current_test(vessel, 400, 180/180*math.pi)
 #static_current_test(vessel,angles)
 
 

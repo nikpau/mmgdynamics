@@ -1,6 +1,5 @@
-
+import csv
 import math
-from turtle import color
 from typing import Optional, Sequence
 
 import matplotlib.pyplot as plt
@@ -8,8 +7,8 @@ import numpy as np
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch, Rectangle
 
-from mmgdynamics import step
 import mmgdynamics
+from mmgdynamics import step
 from mmgdynamics.structs import Vessel
 
 
@@ -424,7 +423,7 @@ def current_test(vessel: Vessel, iters: int,fl_psi: float) -> None:
     twopi = 2*math.pi
 
     agx, agy = 0.0, 0.0
-    head = 0
+    head = 45/180*math.pi
 
     qx, qy = np.linspace(-400, 400, 11), np.linspace(-400, 400, 11)
 
@@ -504,23 +503,36 @@ def static_current_test(vessel: Vessel, ang_list: Sequence[float]) -> None:
     fig = plt.figure()
     ax: plt.Axes = fig.add_subplot(1, 1, 1)
     
-    plt.xlabel(r"Angle of attack for current (relative bow)$\gamma_c$", fontsize=14)
+    plt.xlabel(r"Angle of attack $\gamma_c$ [deg] for current (relative bow)", fontsize=14)
 
     plt.grid(linestyle="-.")
 
-    colors = ["#9b2226","#001219","#94d2bd"]
+    colors = ["#9b2226","#43aa8b","#001219","#005f73","#ee9b00","#ca6702"]
     cx,cy,cn = [], [], []
         
     for angle in ang_list:
-        cx.append(mmgdynamics.dynamics.C_X(angle))
-        cy.append(mmgdynamics.dynamics.C_Y(angle))
-        cn.append(mmgdynamics.dynamics.C_N(angle))
+        cx.append(mmgdynamics.dynamics._C_X(angle))
+        cy.append(mmgdynamics.dynamics._C_Y(angle))
+        cn.append(mmgdynamics.dynamics._C_N(angle))
 
-    coefs = mmgdynamics.dynamics.COEFS
+    ax.plot(np.arange(len(ang_list)),cx,c=colors[2],lw=3,label=r"$C_X$")
+    ax.plot(np.arange(len(ang_list)),cy,c=colors[1],lw=3,label=r"$C_Y$")
+    ax.plot(np.arange(len(ang_list)),cn,c=colors[0],lw=3,label=r"$C_N$")
 
-    ax.plot(np.arange(len(ang_list)),cx,c=colors[2],lw=3,label=r"C_X")
-    ax.plot(np.arange(len(ang_list)),cy,c=colors[1],lw=3,label=r"C_Y")
-    ax.plot(np.arange(len(ang_list)),cn,c=colors[0],lw=3,label=r"C_N")
+    fossen_plot = []
+
+    with open("wpd_datasets.csv") as csvfile:
+        reader = csv.reader(csvfile,delimiter=",")
+        for row in reader:
+            fossen_plot.append(row)
+
+    cxf = [float(x[1]) for x in fossen_plot]
+    cyf = [float(x[3]) for x in fossen_plot]
+    cnf = [float(x[5]) for x in fossen_plot]
+
+    ax.plot(np.arange(0,181,10),cxf,c=colors[5],lw=3,marker="o",label=r"$C_X$ (experimental)")
+    ax.plot(np.arange(0,181,10),cyf,c=colors[4],lw=3,marker="v",label=r"$C_Y$ (experimental)")
+    ax.plot(np.arange(0,181,10),cnf,c=colors[3],lw=3,marker="s",label=r"$C_N$ (experimental)")
 
     plt.legend()
 
