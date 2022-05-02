@@ -5,7 +5,7 @@ from warnings import warn
 from typing import Optional, Any
 from scipy.integrate import solve_ivp
 
-from .structs import Vessel
+from .structs import InlandVessel
 
 from .dynamics import _shallow_water_hdm,mmg_dynamics
 
@@ -17,7 +17,7 @@ __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
 __all__ = ["step"]
 
 
-def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps_old: float, 
+def step(*, X: np.ndarray,vessel: InlandVessel, sps: float, nps_old: float, 
          delta_old: float, psi: float, fl_psi: Optional[float] = None,
          fl_vel: Optional[float] = None, water_depth: Optional[float] = None, 
          debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5,

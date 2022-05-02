@@ -68,55 +68,60 @@ seiunmaru = {
 }
 
 # Großmotorschiff nach BAW Flottenstruktur Niederrhein (Leer)
-GMS1 = {
-    "C_b":          0.9, # Block Coeffiient
+SPTRR1 = {
+    "C_b":          0.883, # Block Coeffiient
     "Lpp":          110.0, # Length over pependiculars (m)/
-    "B":            11.45, # Overall width
-    "m":            1848.82*1000, # Mass of ship as calculated by ▽*rho (displacement * water density)
-    "w_P0":         0.40, # Wake fraction coefficient BAW(2020)
-    "J_int":        0.4, # Intercept for the calculation of K_T (https://doi.org/10.1615/ICHMT.2012.ProcSevIntSympTurbHeatTransfPal.500)
-    "J_slo":       -0.4, # Slope for the calculation of K_T
+    "B":            11.4, # Overall width
+    "m":            3876.09*1000, # Mass of ship as calculated by ▽*rho (displacement * water density)
+    "w_P0":         0.32, # Wake fraction coefficient BAW(2020)
     "x_G":          0.0, # X-Coordinate of the center of gravity (m)
-    "x_P":         -55.0, # X-Coordinate of the propeller (-0.5*Lpp)
-    "D_p":          1.7, # Diameter of propeller (m)
-    "k_0":          0.4, # Same value as "J_int" | Propeller open water coefficients. 
+    "D_p":          1.80, # Diameter of propeller (m)
+    "k_0p":         0.3307, # 
+    "k_1p":        -0.3269, # 
+    "k_2p":        -0.1295, # 
+    "k_0s":         0.3329, # 
+    "k_1s":        -0.3507, # 
+    "k_2s":        -0.1075, # 
     "l_R":         -0.9, # correction of flow straightening factor to yaw-rate
-    "gamma_R_plus": 0.394, # Flow straightening coefficient for positive rudder angles
-    "gamma_R_minus":0.312, # Flow straightening coefficient for negative rudder angles
-    "gamma_R":      0.333,
-    "eta":          0.960, # Ratio of propeller diameter to rudder span
-    "kappa":        0.475, # An experimental constant for expressing "u_R"
-    "A_R":          4.402, # Moveable rudder area
-    "epsilon":      2.467, # Ratio of wake fraction at propeller and rudder positions ((1 - w_R) / (1 - w_P))
-    "A_R_Ld_em":    1/46.8, # Fraction of moveable Rudder area to length*draft
-    "f_alpha":      2.45, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
+    "gamma_R":      0.4603,
+    "eta":          0.9649, # Ratio of propeller diameter to rudder span
+    "kappa":        0.426, # An experimental constant for expressing "u_R"
+    "A_R":          3.76, # Moveable rudder area
+    "x_H_dash":    -0.4,
+    "x_R":         -51.5,
+    "x_P":         -52,
+    "asp":          1.00, # Rudder lift gradient coefficient (assumed rudder aspect ratio = 2)
     "rho":          1000, # Water density of freshwater
-    "t_R":          0.39, # Steering resistance deduction factor (Yoshimura and Masumoto (2012))
+    "t_R":          0.2106, # Steering resistance deduction factor (Yoshimura and Masumoto (2012))
+    "w_R0":         0.3663,
+    "y_ps":         0.228,
+    "y_pp":        -0.228,
+    "y_rs":         0.22,
+    "y_rp":        -0.22,
     "t_P":          0.2, # Thrust deduction factor. BAW(2020)
-    "x_H_dash":    -0.4, # Longitudinal coordinate of acting point of the additional lateral force (Yoshimura and Masumoto (2012))
-    "d":            1.631, # Ship draft (Tiefgang)
-    "m_x_dash":     0.009, # Added masses in x direction (m*0.05)(Clarke et. al.(1983))
-    "m_y_dash":     0.0423, # Added mass in y direction (m*0.2261) (Zhou et. al.(1983))
-    "J_z_dash":     1.121e-6,# Added moment of inertia (m* 0.0724) (Zhou et. al.(1983))
-    "R_0_dash":     0.026, # frictional resistance coefficient TODO Estimate this via Schoenherr's formula
-    "X_vv_dash":   -0.0723, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "X_vr_dash":   -0.0566, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "X_rr_dash":   -0.116, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "X_vvvv_dash":  0.474, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "Y_v_dash":    -0.177, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "Y_r_dash":     0.056, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "Y_vvv_dash":  -1.297, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "Y_vvr_dash":  -0.75, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "Y_vrr_dash":  -0.3598, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "Y_rrr_dash":  -0.051, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "N_v_dash":    -0.029, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "N_r_dash":    -0.0151, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "N_vvv_dash":  -0.039, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "N_vvr_dash":  -0.614, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "N_vrr_dash":   0.014, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "N_rrr_dash":  -0.0326, # Hull derivatives (Yoshimura and Masumoto (2012))
-    "I_zG":         1_398_170_125.0,# 5_592_680_500, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
-    "a_H":          0.4113 # Rudder force increase factor (Quadvlieg (2013))
+    "d":            3.5, # Ship draft (Tiefgang)
+    "m_x_dash":     0.0194, # Added masses in x direction (m*0.05)(Clarke et. al.(1983))
+    "m_y_dash":     0.1708, # Added mass in y direction (m*0.2261) (Zhou et. al.(1983))
+    "J_z_dash":     0.0125,# Added moment of inertia (m* 0.0724) (Zhou et. al.(1983))
+    "X_0_dash":     0.025, # frictional resistance coefficient TODO Estimate via Holtrop method
+    "X_bb_dash":   -0.0012,
+    "X_br_dash":   -0.0462,
+    "X_rr_dash":    0.0663,
+    "X_bbbb_dash":  0.0613,
+    "Y_b_dash":     0.3571,
+    "Y_r_dash":     0.0973,
+    "Y_bb_dash":    0.5885,
+    "Y_rr_dash":    0.0016,
+    "Y_brr_dash":   0.2105,
+    "Y_bbr_dash":  -0.3370,
+    "N_b_dash":     0.0888,
+    "N_r_dash":    -0.0401,
+    "N_bb_dash":    0.0320,
+    "N_rr_dash":   -0.0123,
+    "N_brr_dash":  -0.0543,
+    "N_bbr_dash":  -0.1292,
+    "I_zG":         2_931_293_063, # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
+    "a_H":          0.3831 # Rudder force increase factor (Quadvlieg (2013))
     
 }
 

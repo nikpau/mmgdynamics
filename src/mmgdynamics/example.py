@@ -4,8 +4,7 @@ import numpy as np
 import mmgdynamics.calibrated_vessels as cvs
 
 from mmgdynamics.maneuvers import *
-from mmgdynamics.structs import Vessel
-from mmgdynamics.dynamics import calibrate
+from mmgdynamics.structs import InlandVessel
 
 matplotlib.rcParams['font.family'] = ["Helevtica", 'sans-serif']
 
@@ -29,15 +28,18 @@ matplotlib.rc('font', **font)
 """
 
 # Example minimal dict for a European fishing vessel
-FUb = {
-    "m":        642.4, # Displacement
-    "d":        4.5, # Draft
-    "A_R":      4.36, # Rudder Area
-    "B":        10.0, # Width
-    "Lpp":      26.16, # Length
-    "C_b":      0.57, # Block coefficient
-    "D_p":      2.5, # Propeller diameter
-    "eta":      0.838 # Ratio of propeller diameter to rudder span
+europaschiff = {
+    "m":        1545.6, # Displacement
+    "d":        1.781, # Draft
+    "A_R":      6.0, # Rudder Area
+    "B":        9.5, # Width
+    "Lpp":      105, # Length
+    "w_P0":     0.4,
+    "t_P":      0.2, # Thrust deduction factor
+    "C_b":      0.7, # Block coefficient
+    "D_p":      1.5, # Propeller diameter
+    "f_alpha":  2.4,
+    "eta":      0.938 # Ratio of propeller diameter to rudder span
 }
 
 # Some initial values
@@ -45,28 +47,28 @@ ivs = np.array([4.0, # Longitudinal vessel speed [m/s]
                 0.0, # Lateral vessel speed [m/s]
                 0.0, # Yaw rate acceleration [rad/s]
                 0.0, # Rudder angle [rad]
-                6.0] # Propeller revs [s⁻¹]
+                5.0] # Propeller revs [s⁻¹]
                )
 
 # Uncomment to calibrate a vessel from the minimal dict above
-#vessel = calibrate(FUb,rho = 1000)
+#vessel = calibrate(MinimalVessel(**europaschiff),rho = 1000)
 
 # Use a pre-calibrated vessel
-vessel = Vessel(**cvs.kvlcc2)
+vessel = InlandVessel(**cvs.SPTRR1)
 
 ZIGZAG: bool = False
 
-iters = 1000
-#s = turning_maneuver(ivs, vessel, iters, "starboard")
-#p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=20)
+iters = 200
+s = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=15)
+#p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10,maxdeg=5)
 #q = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10)
-#plot_trajecory([s, p, q], vessel)
+plot_trajecory([s], vessel)
 #plot_r(p)
 
 #free_flow_test(vessel)
 angles = np.arange(180)
 angles = angles/180*np.pi
-current_test(vessel, 400, 180/180*math.pi)
+#current_test(vessel, 400, 45/180*math.pi)
 #static_current_test(vessel,angles)
 
 

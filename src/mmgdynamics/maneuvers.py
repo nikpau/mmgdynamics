@@ -8,11 +8,11 @@ from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch, Rectangle
 
 import mmgdynamics
-from mmgdynamics import step
-from mmgdynamics.structs import Vessel
+from . import step
+from .structs import InlandVessel
 
 
-def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
+def turning_maneuver(ivs: np.ndarray, vessel: InlandVessel,
                      time: int, dir: str = "starboard",
                      maxdeg: int = 20, water_depth: float = None) -> np.ndarray:
     """
@@ -73,6 +73,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
         # Solve the ODE system for one second at a time
         sol = step(X=ivs,
                    vessel=vessel,
+                   psi=psi,
                    sps=1,
                    nps_old=ivs[4],
                    delta_old=delta_list[s],
@@ -104,7 +105,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
     return res
 
 
-def plot_trajecory(t: Sequence[np.ndarray], vessel: Vessel) -> None:
+def plot_trajecory(t: Sequence[np.ndarray], vessel: InlandVessel) -> None:
     """Plot trajecories 
 
     Args:
@@ -167,7 +168,7 @@ def build_delta_zigzag(rise_time: int = 20, delta_max: float = 20.) -> np.ndarra
     return delta_zigzag, len(delta_zigzag)
 
 
-def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel, 
+def zigzag_maneuver(ivs: np.ndarray, vessel: InlandVessel, 
                     max_deg: int, rise_time: int, wd: Optional[Sequence[float]] = None) -> np.ndarray:
     """Perform ZigZag maneuver
 
@@ -271,7 +272,7 @@ def plot_r(t: Sequence[float]):
     plt.show()
 
 
-def free_flow_test(vessel:Vessel):
+def free_flow_test(vessel: InlandVessel):
 
     fig = plt.figure()
     #fig.patch.set_facecolor("#212529")
@@ -301,27 +302,27 @@ def free_flow_test(vessel:Vessel):
             0.0,  # Lateral vessel speed [m/s]
             0.0,  # Yaw rate acceleration [rad/s]
             0.0,  # Rudder angle [rad]
-            6.0  # Propeller revs [s⁻¹]
+            2.0  # Propeller revs [s⁻¹]
         ]
     )
     nps = ivs_reset[-1]    
     
     delta_list_deep = np.concatenate(
         [np.array([0.]),
-         np.linspace(0.0, 20, 10),
-         np.full(300-20, 20)]
+         np.linspace(0.0, 15, 15),
+         np.full(200, 15)]
     )    
     delta_list_shallow = np.concatenate(
         [np.array([0.]),
-         np.linspace(0.0, 20, 10),
-         np.full(600-20, 20)]
+         np.linspace(0.0, 15, 15),
+         np.full(200, 15)]
     )
     
     deltas = [delta_list_shallow,delta_list_deep]
     
     colors = ["#9b2226","#001219"]
     d = vessel.d
-    depths = [d*1.2,None]
+    depths = [3*d,None]
 
     for color,depth,dl in zip(colors,depths,deltas):
         
@@ -332,7 +333,6 @@ def free_flow_test(vessel:Vessel):
         plt.grid(ls=":")
         
         for d in range(len(dl)-1):
-            fl_psi = math.pi
             
             ivs[3] = rad(dl[d+1])
 
@@ -382,7 +382,7 @@ def free_flow_test(vessel:Vessel):
             #           np.full((11, 11), math.sin(fl_psi)),
             #           np.full((11, 11), math.cos(fl_psi)),
             #           scale=20, headwidth=2)
-            if timestep % 4 == 0:
+            if timestep % 2 == 0:
                 ax.add_patch(vessel_rect)
                 
             print(timestep,depth,color)
@@ -391,18 +391,18 @@ def free_flow_test(vessel:Vessel):
     plt.ylim(-70,300)
     
     handles, _ = ax.get_legend_handles_labels()
-    shallow = Patch(color=colors[0], 
-                 label=r"h/T = 1.2")
-    deep = Patch(color=colors[1], 
+    # shallow = Patch(color=colors[0], 
+    #              label=r"h/T = 1.2")
+    deep = Patch(color=colors[0], 
                  label=r"h/T = $\infty$")
     
-    handles.append(shallow)
+    #handles.append(shallow)
     handles.append(deep)
     plt.legend(handles=handles)
     
     plt.show()
 
-def current_test(vessel: Vessel, iters: int,fl_psi: float) -> None:
+def current_test(vessel: InlandVessel, iters: int,fl_psi: float) -> None:
 
     fig = plt.figure()
     #fig.patch.set_facecolor("#212529")
@@ -423,7 +423,7 @@ def current_test(vessel: Vessel, iters: int,fl_psi: float) -> None:
     twopi = 2*math.pi
 
     agx, agy = 0.0, 0.0
-    head = 45/180*math.pi
+    head = 0
 
     qx, qy = np.linspace(-400, 400, 11), np.linspace(-400, 400, 11)
 
@@ -491,14 +491,14 @@ def current_test(vessel: Vessel, iters: int,fl_psi: float) -> None:
                   np.full((11, 11), -math.cos(fl_psi)),
                   scale=20, headwidth=2)
 
-        if timestep % 2 == 0:
+        if timestep % 8 == 0:
             ax.add_patch(vessel_rect)
 
         #print(timestep)
     
     plt.show()
 
-def static_current_test(vessel: Vessel, ang_list: Sequence[float]) -> None:
+def static_current_test(vessel: InlandVessel, ang_list: Sequence[float]) -> None:
 
     fig = plt.figure()
     ax: plt.Axes = fig.add_subplot(1, 1, 1)
