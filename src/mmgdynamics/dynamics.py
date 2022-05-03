@@ -162,7 +162,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     x_H = p.x_H_dash * p.Lpp
 
     # yaw moment around midship by steering
-    N_R = -((-p.Lpp/2) + p.a_H * x_H) * F_N * math.cos(delta)
+    N_R = -((-1/2) + p.a_H * x_H) * F_N * math.cos(delta)
 
     # Forces related to currents:
     if fl_vel is not None and fl_vel != 0.:
