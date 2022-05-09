@@ -7,10 +7,10 @@ from mmgdynamics.maneuvers import *
 from mmgdynamics.structs import Vessel
 from mmgdynamics.dynamics import calibrate
 
-matplotlib.rcParams['font.family'] = ["Helevtica", 'sans-serif']
+matplotlib.rcParams['font.family'] = ["Tahoma", 'sans-serif']
 
-font = {'weight': 'bold',
-        'size': 14}
+font = {'weight': 'normal',
+        'size': 18}
 
 matplotlib.rc('font', **font)
 
@@ -28,24 +28,27 @@ matplotlib.rc('font', **font)
     
 """
 
-# Example minimal dict for a European fishing vessel
-FUb = {
-    "m":        642.4, # Displacement
-    "d":        4.5, # Draft
-    "A_R":      4.36, # Rudder Area
-    "B":        10.0, # Width
-    "Lpp":      26.16, # Length
-    "C_b":      0.57, # Block coefficient
-    "D_p":      2.5, # Propeller diameter
-    "eta":      0.838 # Ratio of propeller diameter to rudder span
-}
-
 # Some initial values
+ivs = np.array([7.97, # Longitudinal vessel speed [m/s]
+                0.0, # Lateral vessel speed [m/s]
+                0.0, # Yaw rate acceleration [rad/s]
+                0.0, # Rudder angle [rad]
+                2] # Propeller revs [s⁻¹]
+               )
+# Some initial values
+ivs = np.array([1.128, # Longitudinal vessel speed [m/s]
+                0.0, # Lateral vessel speed [m/s]
+                0.0, # Yaw rate acceleration [rad/s]
+                0.0, # Rudder angle [rad]
+                13.4] # Propeller revs [s⁻¹]
+               )
+
+# Initial values for 1/5 kvlcc2
 ivs = np.array([4.0, # Longitudinal vessel speed [m/s]
                 0.0, # Lateral vessel speed [m/s]
                 0.0, # Yaw rate acceleration [rad/s]
                 0.0, # Rudder angle [rad]
-                6.0] # Propeller revs [s⁻¹]
+                3.0] # Propeller revs [s⁻¹]
                )
 
 # Uncomment to calibrate a vessel from the minimal dict above
@@ -54,25 +57,25 @@ ivs = np.array([4.0, # Longitudinal vessel speed [m/s]
 # Use a pre-calibrated vessel
 vessel = Vessel(**cvs.kvlcc2)
 
-ZIGZAG: bool = False
+ZIGZAG: bool = True
 
-iters = 1000
-#s = turning_maneuver(ivs, vessel, iters, "starboard")
+iters = 800
+#s = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35)
 #p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=20)
 #q = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10)
-#plot_trajecory([s, p, q], vessel)
-#plot_r(p)
+#plot_trajecory([s], vessel)
+#plot_r(s)
 
-#free_flow_test(vessel)
+#free_flow_test(vessel, ivs)
 angles = np.arange(180)
 angles = angles/180*np.pi
-current_test(vessel, 400, 180/180*math.pi)
+#current_test(vessel, ivs, 400, 0/180*math.pi)
 #static_current_test(vessel,angles)
 
 
 if ZIGZAG:
-    z, l = zigzag_maneuver(ivs, vessel, rise_time=5, max_deg=10,wd=[5,None])
-    plot_zigzag(z, l)
+    z, l = zigzag_maneuver(ivs, vessel, dir=1, dps=4.76, max_deg=10,wd=[1.2*vessel.d,None])
+    plot_zigzag(z, l, vessel, ivs)
 
 # Print the vessel dict to output
 print(json.dumps(vessel.__dict__,sort_keys=True, indent=4))
