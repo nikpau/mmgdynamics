@@ -26,11 +26,11 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps: float,
     """Solve the MMG system for a given vessel for an arbitrarily long timestep
     
     Args:
-        X (np.ndarray): Initial values
+        X (np.ndarray): Initial values (u,v,r)
         params (dict): Vessel dict
         sps (float): Seconds to simulate per timestep
-        nps_old (float): propeller rotations [s⁻¹] last timestep
-        delta_old (float): rudder angle last timestep
+        nps (float): Propeller revolutions per second
+        delta (float): Rudder angle in [rad]
         fl_psi (float): Attack angle of current relative to heading [rad]
         fl_vel (Optional[float]): Fluid velocity (Current velocity)
         water_depth( Optional[float]): Water depth if vessel is simulated in shallow water
