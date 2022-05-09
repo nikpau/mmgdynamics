@@ -17,8 +17,8 @@ __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
 __all__ = ["step"]
 
 
-def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps_old: float, 
-         delta_old: float, psi: float, fl_psi: Optional[float] = None,
+def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps: float, 
+         delta: float, psi: float, fl_psi: Optional[float] = None,
          fl_vel: Optional[float] = None, water_depth: Optional[float] = None, 
          debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5,
          **sol_options # Additional options (see help(solve_ivp))
@@ -72,9 +72,8 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps_old: float,
                          y0=X,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
                          args=(vessel if water_depth is None else sh_vessel, # Order is important! Do not change
-                            psi,
-                            fl_psi,fl_vel, 
-                            nps_old, delta_old),
+                            psi,delta,nps,
+                            fl_psi,fl_vel),
                          method="DOP853",
                          rtol = rtol,
                          atol = atol,

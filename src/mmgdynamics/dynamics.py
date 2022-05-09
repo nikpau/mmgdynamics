@@ -20,8 +20,7 @@ __all__ = ["calilbrate"]
 
 
 def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
-                 fl_psi: float, fl_vel: float, nps_old: float,
-                 delta_old: float,) -> np.ndarray:
+                 delta: float, nps: float, fl_psi: float, fl_vel: float) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
     for the MMG standard model
 
@@ -44,7 +43,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     p = params
 
     # u: long vel, v:lat. vel, r:yaw rate (d_psi/dt),delta: rudder angle, nps: propeller revs per second
-    u, v, r, delta, nps = X
+    u, v, r  = X
 
     # v = v_m + x_G*r | lateral velocity midship + x coord center of gravity * yaw rate
     v_m = v - p.x_G * r
@@ -213,11 +212,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     d_r = ((N_H + N_R + N_C) - (p.x_G * m * d_v + p.x_G * m * u * r)) / \
         (I_zG + J_z + (p.x_G**2) * m)
 
-    # Derivatives for delta and nps
-    d_delta = (delta - delta_old)
-    d_nps = (nps - nps_old)
-
-    return np.array([d_u, d_v, d_r, d_delta, d_nps])
+    return np.array([d_u, d_v, d_r])
 
 def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     """Correct the hydrodynamic derivatives and

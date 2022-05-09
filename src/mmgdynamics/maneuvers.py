@@ -9,9 +9,9 @@ from matplotlib.patches import Patch, Rectangle
 
 import mmgdynamics
 from mmgdynamics import step
-from mmgdynamics.structs import Vessel
+from mmgdynamics.structs import InitialValues, Vessel
 
-def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
+def turning_maneuver(ivs: InitialValues, vessel: Vessel,
                      time: int, dir: str = "starboard",
                      maxdeg: int = 20, water_depth: float = None) -> np.ndarray:
     """
@@ -49,8 +49,8 @@ def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
     # 35°/20s=1.75°/s
     delta_list = np.concatenate(
         [np.array([0.]),
-         np.linspace(0.0, maxdeg, 2),
-         np.full(time-2, maxdeg)]
+         np.linspace(0.0, maxdeg, 10),
+         np.full(time-10, maxdeg)]
     )
 
     if dir == "starboard":
@@ -62,25 +62,26 @@ def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
 
     # Starting angle
     psi = 0.
+    
+    # Initial values
+    uvr = np.array([ivs.u,ivs.v,ivs.r])
 
     # Simulate for `time` seconds
     for s in range(time):
 
-        # Set r to the next value in our list
-        ivs[3] = delta_list[s+1]
-
         # Solve the ODE system for one second at a time
-        sol = step(X=ivs,
-                    psi= psi,   
+        sol = step(X=uvr,
+                   psi= psi,   
                    vessel=vessel,
                    sps=1,
-                   nps_old=ivs[4],
-                   delta_old=delta_list[s],
+                   nps=ivs.nps,
+                   delta=delta_list[s],
                    fl_vel=None,
-                   water_depth=water_depth)
+                   water_depth=water_depth
+                )
 
         # Vel in x and y direction (m/s), angular turning rate (rad/s)
-        u, v, r, _, _ = sol
+        u, v, r = sol
 
         # Transform to earth-fixed coordinate system
 
@@ -99,7 +100,7 @@ def turning_maneuver(ivs: np.ndarray, vessel: Vessel,
         res[2, s] = math.sqrt(u**2+v**2)
 
         # Set current solution as next initial values
-        ivs = np.hstack(sol)
+        uvr = np.hstack(sol)
 
     return res
 
@@ -143,7 +144,7 @@ def plot_trajecory(t: Sequence[np.ndarray], vessel: Vessel) -> None:
     plt.show()
 
 
-def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel, 
+def zigzag_maneuver(ivs: InitialValues, vessel: Vessel, 
                     max_deg: int, dps: float, dir=1, 
                     wd: Optional[Sequence[float]] = None) -> np.ndarray:
     """Perform ZigZag maneuver
@@ -162,7 +163,7 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel,
     result = [[], []]
     delta_list = [[], []]
 
-    reset_ivs = ivs
+    reset_ivs = np.array([ivs.u,ivs.v,ivs.r])
 
     # Degrees of rudder change per second
     dps = dps*math.pi/180
@@ -170,23 +171,19 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel,
 
     for idx, depth in enumerate(wd):
 
-        ivs = reset_ivs
+        uvr = reset_ivs
         psi = 0.0
         delta = 0.0
-        delta_old = 0.0
         first,second,third = True, True, True
         while True:
-
-            # Set r to the next value in our list
-            ivs[3] = delta
-
+            
             # Solve the ODE system for one second at a time
-            sol = step(X=ivs,
+            sol = step(X=uvr,
                     vessel=vessel,
                     sps=1,
                     psi=psi,
-                    nps_old=ivs[4],
-                    delta_old=delta_old,
+                    nps=ivs.nps,
+                    delta=delta,
                     fl_vel=None,
                     fl_psi=None,
                     water_depth=depth,
@@ -194,16 +191,14 @@ def zigzag_maneuver(ivs: np.ndarray, vessel: Vessel,
                     rtol=1e-6)
 
             # Angular turning rate (rad/s)
-            _, _, r, _, _ = sol
+            _, _, r = sol
 
             psi += r
 
             result[idx].append(float(psi))
             delta_list[idx].append(float(delta))
 
-            ivs = np.hstack(sol)
-
-            delta_old = delta
+            uvr = np.hstack(sol)
 
             if psi < max_deg*dir and first:
                 delta = min(delta+dps*dir,max_deg*dir)
@@ -291,7 +286,7 @@ def plot_zigzag(t: list, delta_list: np.ndarray, vessel: Vessel, ivs: np.ndarray
     plt.savefig("zigzag1010.pdf")
 
 
-def free_flow_test(vessel:Vessel, ivs):
+def free_flow_test(vessel:Vessel, ivs: InitialValues):
 
     fig = plt.figure(figsize=(6,6))
     #fig.patch.set_facecolor("#212529")
@@ -315,8 +310,7 @@ def free_flow_test(vessel:Vessel, ivs):
     # Length and Breadth of the simulated vessel
     L, B = vessel.Lpp/vessel.Lpp, vessel.B/vessel.Lpp
 
-    ivs_init = ivs
-    nps = ivs_init[-1]    
+    ivs_init = np.array([ivs.u,ivs.v,ivs.r])
     
     delta_list_deep = np.concatenate(
         [np.array([0.]),
@@ -340,19 +334,17 @@ def free_flow_test(vessel:Vessel, ivs):
         agx, agy = 0.0, 0.0
         head = 0.0
         timestep = 0
-        ivs = ivs_init
+        uvr = ivs_init
         plt.grid(ls=":")
         
-        for d in range(len(dl)-1):
-            
-            ivs[3] = rad(dl[d+1])
+        for d in range(len(dl)):
 
             sol = step(
-                X=ivs,
+                X=uvr,
                 vessel=vessel,
                 psi=head,
-                nps_old=nps,
-                delta_old=rad(dl[d]),
+                nps=ivs.nps,
+                delta=rad(dl[d]),
                 fl_psi=None,
                 fl_vel=None,
                 water_depth=depth,
@@ -363,7 +355,7 @@ def free_flow_test(vessel:Vessel, ivs):
             timestep += 1
 
             # Vel in x and y direction (m/s), angular turning rate (rad/s)
-            u, v, r, _, _ = sol
+            u, v, r = sol
 
             # Transform to earth-fixed coordinate system
 
@@ -377,7 +369,7 @@ def free_flow_test(vessel:Vessel, ivs):
             anchor = agx - B/2, agy - L/2
 
             # Set current solution as next initial values
-            ivs = np.hstack(sol)
+            uvr = np.hstack(sol)
 
             # Rectangle of the heading transformed vessel
             vessel_rect = Rectangle(anchor,
@@ -413,7 +405,7 @@ def free_flow_test(vessel:Vessel, ivs):
     
     plt.savefig("turning_circles.pdf")
 
-def current_test(vessel: Vessel, ivs: np.ndarray, iters: int,fl_psi: float) -> None:
+def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -> None:
 
     fig = plt.figure()
     #fig.patch.set_facecolor("#212529")
@@ -441,18 +433,19 @@ def current_test(vessel: Vessel, ivs: np.ndarray, iters: int,fl_psi: float) -> N
     # Length and Breadth of the simulated vessel
     L, B = vessel.Lpp, vessel.B
     
-    nps = ivs[-1]    
+    nps = ivs.nps 
+    uvr = np.array([ivs.u,ivs.v,ivs.r])
     
     colors = ["#9b2226","#001219"]
         
     for _ in range(iters):
 
         sol = step(
-            X=ivs,
+            X=uvr,
             vessel=vessel,
             psi=head,
-            nps_old=nps,
-            delta_old=0.0,
+            nps=nps,
+            delta=0.0,
             fl_psi=fl_psi,
             fl_vel=None,
             water_depth=None,
@@ -463,7 +456,7 @@ def current_test(vessel: Vessel, ivs: np.ndarray, iters: int,fl_psi: float) -> N
         timestep += 1
 
         # Vel in x and y direction (m/s), angular turning rate (rad/s)
-        u, v, r, _, _ = sol
+        u, v, r = sol
 
         # Transform to earth-fixed coordinate system
 
@@ -477,7 +470,7 @@ def current_test(vessel: Vessel, ivs: np.ndarray, iters: int,fl_psi: float) -> N
         anchor = agx - B/2, agy - L/2
         
         # Set current solution as next initial values
-        ivs = np.hstack(sol)
+        uvr = np.hstack(sol)
         
         print(math.sqrt(u**2+v**2))
 

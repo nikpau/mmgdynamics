@@ -29,27 +29,30 @@ matplotlib.rc('font', **font)
 """
 
 # Some initial values
-ivs = np.array([7.97, # Longitudinal vessel speed [m/s]
-                0.0, # Lateral vessel speed [m/s]
-                0.0, # Yaw rate acceleration [rad/s]
-                0.0, # Rudder angle [rad]
-                2] # Propeller revs [s⁻¹]
-               )
+ivs = InitialValues(
+    u     = 7.97, # Longitudinal vessel speed [m/s]
+    v     = 0.0, # Lateral vessel speed [m/s]
+    r     = 0.0, # Yaw rate acceleration [rad/s]
+    delta = 0.0, # Rudder angle [rad]
+    nps   = 2 # Propeller revs [s⁻¹]
+)
 # Some initial values
-ivs = np.array([1.128, # Longitudinal vessel speed [m/s]
-                0.0, # Lateral vessel speed [m/s]
-                0.0, # Yaw rate acceleration [rad/s]
-                0.0, # Rudder angle [rad]
-                13.4] # Propeller revs [s⁻¹]
-               )
+ivs = InitialValues(
+    u     = 1.128, # Longitudinal vessel speed [m/s]
+    v     = 0.0, # Lateral vessel speed [m/s]
+    r     = 0.0, # Yaw rate acceleration [rad/s]
+    delta = 0.0, # Rudder angle [rad]
+    nps   = 13.4 # Propeller revs [s⁻¹]
+)
 
 # Initial values for 1/5 kvlcc2
-ivs = np.array([4.0, # Longitudinal vessel speed [m/s]
-                0.0, # Lateral vessel speed [m/s]
-                0.0, # Yaw rate acceleration [rad/s]
-                0.0, # Rudder angle [rad]
-                3.0] # Propeller revs [s⁻¹]
-               )
+ivs = InitialValues(
+    u     = 4.0, # Longitudinal vessel speed [m/s]
+    v     = 0.0, # Lateral vessel speed [m/s]
+    r     = 0.0, # Yaw rate acceleration [rad/s]
+    delta = 0.0, # Rudder angle [rad]
+    nps   = 3.0 # Propeller revs [s⁻¹]
+)
 
 # Uncomment to calibrate a vessel from the minimal dict above
 #vessel = calibrate(FUb,rho = 1000)
@@ -57,14 +60,14 @@ ivs = np.array([4.0, # Longitudinal vessel speed [m/s]
 # Use a pre-calibrated vessel
 vessel = Vessel(**cvs.kvlcc2)
 
-ZIGZAG: bool = True
+ZIGZAG: bool = False
 
 iters = 800
-#s = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35)
+s = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35)
 #p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=20)
 #q = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10)
-#plot_trajecory([s], vessel)
-#plot_r(s)
+plot_trajecory([s], vessel)
+plot_r(s)
 
 #free_flow_test(vessel, ivs)
 angles = np.arange(180)
