@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Optional
+from typing import Optional, TypeVar
+
 
 @dataclass
 class Vessel:
@@ -92,3 +93,18 @@ class MinimalVessel:
     x_G: Optional[float] = None # X-Coordinate of the center of gravity (m)
     w_P0: Optional[float] = None # Wake fraction coefficient
     t_P: Optional[float] = None # Thrust deduction factor
+
+
+Surge = TypeVar("Surge",bound=float)
+Sway = TypeVar("Sway",bound=float)
+YawRate = TypeVar("YawRate",bound=float)
+RudderAngle = TypeVar("RudderAngle",bound=float)
+RevPerSecond = TypeVar("RevPerSecond",bound=float)
+
+@dataclass
+class InitialValues:
+    u: Surge
+    v: Sway
+    r: YawRate
+    delta: RudderAngle
+    nps: RevPerSecond
