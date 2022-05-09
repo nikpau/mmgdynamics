@@ -52,12 +52,11 @@ class Vessel:
     N_rrr_dash: float # Hull derivatives
     
     # Masses and added masses
-    m: float # Mass of ship as calculated by ▽*rho (displacement * water density)
+    displ: float # Displacement in [m³]
     m_x_dash: float # Non dimensionalized added masses coefficient in x direction
     m_y_dash: float # Non dimensionalized added masses coefficient in y direction
     
     # Moment of inertia and added moment of inertia
-    I_zG: float # Moment of inertia of ship around center of gravity (m*(0.25*Lpp)**2) (Point mass Inertia)
     J_z_dash: float # Added moment of inertia coefficient
     
     # Wake change coefficients and propeller advance ratio polynomial
