@@ -55,17 +55,18 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
         v_dash = 0.0
         r_dash = 0.0
     else:
-        beta = math.atan2(-v_m, u)  # Drift angle at midship position
+        beta = math.atan(-v_m/u)  # Drift angle at midship position
         v_dash = v_m / U  # Non-dimensionalized lateral velocity
         r_dash = r * p.Lpp / U  # Non-dimensionalized yaw rate
 
     # Redefine
     beta_P = beta - (p.x_P/p.Lpp) * r_dash
-    if all(getattr(p,k) is not None for k in ("C_1","C_2_plus","C_2_minus")):
+    #if all(getattr(p,k) is not None for k in ("C_1","C_2_plus","C_2_minus")):
+    if False:
         C_2 = p.C_2_plus if beta_P >= 0 else p.C_2_minus
         w_P = -(1+(1-math.exp(-p.C_1*abs(beta_P))*(C_2-1))*(1-p.w_P0))+1
     else:
-        w_P = p.w_P0 * math.exp(-4.0 * (beta_P)**2)
+        w_P = p.w_P0 * math.exp(-4.0 * beta_P**2)
 
     if nps == 0.0:  # No propeller movement, no advance ratio
         J = 0.0
@@ -101,7 +102,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     else:
         u_R = u * (1 - w_P) * p.epsilon * math.sqrt(
             p.eta * (1.0 + p.kappa * (
-                math.sqrt(1.0 + 8.0 * K_T / (np.pi * J**2)) - 1))**2 + (1 - p.eta)
+                math.sqrt(1.0 + 8.0 * K_T / (math.pi * J**2)) - 1))**2 + (1 - p.eta)
         )
     # Rudder inflow velocity
     U_R = math.sqrt(u_R**2 + v_R**2)
@@ -162,7 +163,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     x_H = p.x_H_dash * p.Lpp
 
     # yaw moment around midship by steering
-    N_R = -((-1/2) + p.a_H * x_H) * F_N * math.cos(delta)
+    N_R = -(-0.5*p.Lpp + p.a_H * x_H) * F_N * math.cos(delta)
 
     # Forces related to currents:
     if fl_vel is not None and fl_vel != 0.:
@@ -195,11 +196,11 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     m_x = p.m_x_dash * (0.5 * p.rho * (p.Lpp**2) * p.d)
     m_y = p.m_y_dash * (0.5 * p.rho * (p.Lpp**2) * p.d)
     J_z = p.J_z_dash * (0.5 * p.rho * (p.Lpp**4) * p.d)
-    m = p.m
-    I_zG = p.I_zG
+    m = p.displ*p.rho
+    I_zG = m*(0.25*p.Lpp)**2
 
     # Longitudinal acceleration
-    d_u = ((X_H + X_R + X_P + X_C) + (m + m_y) * v *
+    d_u = ((X_H + X_R + X_P + X_C) + (m + m_y) * v_m *
            r + p.x_G * m * (r**2)) / (m + m_x)
 
     # Lateral acceleration
@@ -213,8 +214,8 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
         (I_zG + J_z + (p.x_G**2) * m)
 
     # Derivatives for delta and nps
-    d_delta = (delta - delta_old) * t
-    d_nps = (nps - nps_old) * t
+    d_delta = (delta - delta_old)
+    d_nps = (nps - nps_old)
 
     return np.array([d_u, d_v, d_r, d_delta, d_nps])
 
