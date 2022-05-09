@@ -62,7 +62,7 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps_old: float,
         if water_depth < vessel.d:
             raise LogicError(
                 "Water depth cannot be less than ship draft.\n"
-                "Water depth:{} | Ship draft: {}".format(water_depth, vessel.d)
+                "Water depth: {} | Ship draft: {}".format(np.round(water_depth,3), vessel.d)
                 )
         sh_vessel = copy.deepcopy(vessel)
         _shallow_water_hdm(sh_vessel, water_depth)
