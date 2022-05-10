@@ -204,12 +204,14 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     # Lateral acceleration
     f = (I_zG + J_z + (p.x_G**2) * m)
 
-    d_v = ((Y_H+Y_R+Y_C) - (m+m_x)*u*r - ((p.x_G*m*(N_H + N_R + N_C))/(f)) + ((p.x_G**2*m**2*u*r)/(f)))\
+    d_vm = ((Y_H+Y_R+Y_C) - (m+m_x)*u*r - ((p.x_G*m*(N_H + N_R + N_C))/(f)) + ((p.x_G**2*m**2*u*r)/(f)))\
         / ((m+m_y)-((p.x_G**2*m**2)/(f)))
 
     # Yaw rate acceleration
-    d_r = ((N_H + N_R + N_C) - (p.x_G * m * d_v + p.x_G * m * u * r)) / \
+    d_r = ((N_H + N_R + N_C) - (p.x_G * m * d_vm + p.x_G * m * u * r)) / \
         (I_zG + J_z + (p.x_G**2) * m)
+
+    d_v = d_vm + p.x_G*d_r
 
     return np.array([d_u, d_v, d_r])
 
