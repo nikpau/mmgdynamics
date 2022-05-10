@@ -60,10 +60,9 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
 
     # Redefine
     beta_P = beta - (p.x_P/p.Lpp) * r_dash
-    #if all(getattr(p,k) is not None for k in ("C_1","C_2_plus","C_2_minus")):
-    if False:
+    if all(getattr(p,k) is not None for k in ("C_1","C_2_plus","C_2_minus")):
         C_2 = p.C_2_plus if beta_P >= 0 else p.C_2_minus
-        w_P = -(1+(1-math.exp(-p.C_1*abs(beta_P))*(C_2-1))*(1-p.w_P0))+1
+        w_P = 1-(1+(1-math.exp(-p.C_1*abs(beta_P))*(C_2-1))*(1-p.w_P0))
     else:
         w_P = p.w_P0 * math.exp(-4.0 * beta_P**2)
 
