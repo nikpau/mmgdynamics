@@ -95,8 +95,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
 
     # Longitudinal inflow velocity components to rudder
     if J == 0.0:
-        u_R = math.sqrt(p.eta * (p.kappa * p.epsilon *
-                                    8.0 * p.k_0 * nps ** 2 * p.D_p**4 / np.pi)**2)
+        u_R = 0.0
     else:
         u_R = u * (1 - w_P) * p.epsilon * math.sqrt(
             p.eta * (1.0 + p.kappa * (
