@@ -210,9 +210,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     d_r = ((N_H + N_R + N_C) - (p.x_G * m * d_vm + p.x_G * m * u * r)) / \
         (I_zG + J_z + (p.x_G**2) * m)
 
-    d_v = d_vm + p.x_G*d_r
-
-    return np.array([d_u, d_v, d_r])
+    return np.array([d_u, d_vm, d_r])
 
 def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     """Correct the hydrodynamic derivatives and
