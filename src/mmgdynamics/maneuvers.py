@@ -49,8 +49,8 @@ def turning_maneuver(ivs: InitialValues, vessel: Vessel,
     # 35°/20s=1.75°/s
     delta_list = np.concatenate(
         [np.array([0.]),
-         np.linspace(0.0, maxdeg, 10),
-         np.full(time-10, maxdeg)]
+         np.linspace(0.0, maxdeg, 20),
+         np.full(time-20, maxdeg)]
     )
 
     if dir == "starboard":
@@ -447,7 +447,7 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
             nps=nps,
             delta=0.0,
             fl_psi=fl_psi,
-            fl_vel=None,
+            fl_vel=1.0,
             water_depth=None,
             sps=1,
             atol=1e-6,rtol=1e-3
@@ -472,7 +472,8 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
         # Set current solution as next initial values
         uvr = np.hstack(sol)
         
-        print(math.sqrt(u**2+v**2))
+        #print(math.sqrt(u**2+v**2))
+        print(r)
 
         # Rectangle of the heading transformed vessel
         vessel_rect = Rectangle(anchor,

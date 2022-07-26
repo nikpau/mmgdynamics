@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from typing import Optional, TypeVar
 
+import numpy as np
+
 
 @dataclass
 class Vessel:

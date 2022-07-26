@@ -74,7 +74,7 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps: float,
                          args=(vessel if water_depth is None else sh_vessel, # Order is important! Do not change
                             psi,delta,nps,
                             fl_psi,fl_vel),
-                         method="DOP853",
+                         method="RK23",
                          rtol = rtol,
                          atol = atol,
                          **sol_options

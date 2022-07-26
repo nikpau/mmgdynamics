@@ -36,14 +36,14 @@ ivs = InitialValues(
     delta = 0.0, # Rudder angle [rad]
     nps   = 2 # Propeller revs [s⁻¹]
 )
-# Some initial values
-ivs = InitialValues(
-    u     = 1.128, # Longitudinal vessel speed [m/s]
-    v     = 0.0, # Lateral vessel speed [m/s]
-    r     = 0.0, # Yaw rate acceleration [rad/s]
-    delta = 0.0, # Rudder angle [rad]
-    nps   = 13.4 # Propeller revs [s⁻¹]
-)
+# # Some initial values
+# ivs = InitialValues(
+#     u     = 1.128, # Longitudinal vessel speed [m/s]
+#     v     = 0.0, # Lateral vessel speed [m/s]
+#     r     = 0.0, # Yaw rate acceleration [rad/s]
+#     delta = 0.0, # Rudder angle [rad]
+#     nps   = 13.4 # Propeller revs [s⁻¹]
+# )
 
 # Initial values for 1/5 kvlcc2
 ivs = InitialValues(
@@ -58,21 +58,22 @@ ivs = InitialValues(
 #vessel = calibrate(FUb,rho = 1000)
 
 # Use a pre-calibrated vessel
+vessel = Vessel(**cvs.kvlcc2_full)
 vessel = Vessel(**cvs.kvlcc2)
 
 ZIGZAG: bool = False
 
-iters = 800
-s = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35)
+iters = 1500
+#s = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35)
 #p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=20)
 #q = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10)
-plot_trajecory([s], vessel)
-plot_r(s)
+#plot_trajecory([s], vessel)
+#plot_r(s)
 
 #free_flow_test(vessel, ivs)
 angles = np.arange(180)
 angles = angles/180*np.pi
-#current_test(vessel, ivs, 400, 0/180*math.pi)
+current_test(vessel, ivs, 1000, 45/180*math.pi)
 #static_current_test(vessel,angles)
 
 
