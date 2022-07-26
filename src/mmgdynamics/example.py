@@ -30,11 +30,11 @@ matplotlib.rc('font', **font)
 
 # Some initial values
 ivs = InitialValues(
-    u     = 7.97, # Longitudinal vessel speed [m/s]
+    u     = 3.85, # Longitudinal vessel speed [m/s]
     v     = 0.0, # Lateral vessel speed [m/s]
     r     = 0.0, # Yaw rate acceleration [rad/s]
     delta = 0.0, # Rudder angle [rad]
-    nps   = 2 # Propeller revs [s⁻¹]
+    nps   = 1.05 # Propeller revs [s⁻¹]
 )
 # # Some initial values
 # ivs = InitialValues(
@@ -46,34 +46,41 @@ ivs = InitialValues(
 # )
 
 # Initial values for 1/5 kvlcc2
-ivs = InitialValues(
-    u     = 4.0, # Longitudinal vessel speed [m/s]
-    v     = 0.0, # Lateral vessel speed [m/s]
-    r     = 0.0, # Yaw rate acceleration [rad/s]
-    delta = 0.0, # Rudder angle [rad]
-    nps   = 3.0 # Propeller revs [s⁻¹]
-)
+# ivs = InitialValues(
+#     u     = 4.0, # Longitudinal vessel speed [m/s]
+#     v     = 0.0, # Lateral vessel speed [m/s]
+#     r     = 0.0, # Yaw rate acceleration [rad/s]
+#     delta = 0.0, # Rudder angle [rad]
+#     nps   = 3.0 # Propeller revs [s⁻¹]
+# )
 
 # Uncomment to calibrate a vessel from the minimal dict above
 #vessel = calibrate(FUb,rho = 1000)
 
 # Use a pre-calibrated vessel
 vessel = Vessel(**cvs.kvlcc2_full)
-vessel = Vessel(**cvs.kvlcc2)
 
 ZIGZAG: bool = False
 
-iters = 1500
-#s = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35)
-#p = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=20)
-#q = turning_maneuver(ivs, vessel, iters, "starboard",water_depth=10)
-#plot_trajecory([s], vessel)
-#plot_r(s)
+iters = 3000
+s = turning_maneuver(ivs, vessel, iters, "port",maxdeg=35, water_depth=None)
+ivs = InitialValues(
+    u     = 3.85, # Longitudinal vessel speed [m/s]
+    v     = 0.0, # Lateral vessel speed [m/s]
+    r     = 0.0, # Yaw rate acceleration [rad/s]
+    delta = 0.0, # Rudder angle [rad]
+    nps   = 0.65 # Propeller revs [s⁻¹]
+)
+
+p = turning_maneuver(ivs, vessel, iters, "port",maxdeg=35, water_depth=25)
+#q = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35, water_depth=8)
+plot_trajecory([s,p], vessel)
+plot_r([s,p])
 
 #free_flow_test(vessel, ivs)
 angles = np.arange(180)
 angles = angles/180*np.pi
-current_test(vessel, ivs, 1000, 45/180*math.pi)
+#current_test(vessel, ivs, 1000, 45/180*math.pi)
 #static_current_test(vessel,angles)
 
 

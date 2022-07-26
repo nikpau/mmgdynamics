@@ -217,68 +217,90 @@ def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     hydrodynamic masses for shallow water conditions.
 
     Sources:
-        Tang et. al (2020) https://doi.org/10.1016/j.oceaneng.2019.106679
-        Furukawa et. al. (2016) https://dx.doi.org/10.18451/978-3-939230-38-0_33
+        Taimuri et. al. (2020) https://doi.org/10.1016/j.oceaneng.2020.108103
 
 
     Args:
         v (dict): vessel parameter dict
         water_depth (float): water depth around vessel [m]
     """
+    frac = lambda x,y: x/y
 
     # Length, Beam (width), Draft, Block Coefficient
-    L, B, d, Cb = v.Lpp, v.B, v.d, v.C_b
+    L, B, T, Cb = v.Lpp, v.B, v.d, v.C_b
 
-    h = water_depth
+    H = water_depth
 
-    # Shallow water adaption for longitudinal hydrodynamic derivatives
-    # Source: Furukawa et. al. (2016)
-    v.X_vv_dash *= -70.8*(d/h)**4 + 27.7*(d/h)**2 + 1
-    v.X_vr_dash *= 1.3*(d/h)**2 + 1
+    HT = H/T -1
+    TH = T/H
+    K0 = 1+frac(0.0775,HT**2)-frac(0.011,HT**3)+frac(0.000068,HT**5)
+    K1 = -frac(0.0643,HT)+frac(0.0724,HT**2)-frac(0.0113,HT**3)+frac(0.0000767,HT**5)
+    K2 = frac(0.0342,HT) if B/T <= 4 else frac(0.137*B,HT*T)
+    B1 = Cb*B*(1+frac(B,L))**2
+    B2 = 0.83*frac(B1,Cb)
 
-    # Hull frictional resistance coefficient
-    v.R_0_dash *= 0.388*(d/h)**2 + 1
+    A1Yr   = -5.5*(frac(Cb*B,T))**2+26*frac(Cb*B,T)-31.5
+    A1Yrr  = -15600*(1-Cb)**5
+    A1Yvrr = 21500*(((1-Cb)*frac(T,B))**2)-4800*((1-Cb)*frac(T,B))+220
+    A1Nvv  = -240*(1-Cb)+57
+    A1Nrr  = -1960*((1-Cb)*frac(T,B))**2+448*(1-Cb)*frac(T,B)-25
+    A1Nvvr = 91*Cb*frac(T,B)-25
+    A1Nvrr = 40*Cb*frac(B,T)-88
+    A2Yr   = 37*frac(Cb*B,T)**2-185*frac(Cb*B,T)+230
+    A2Yrr  = 116000*(1-Cb)**5
+    A2Yvrr = -40800*((1-Cb)*frac(T,B))**2+7500*(1-Cb)*frac(T,B)-274
+    A2Nvv  = 1770*(1-Cb)-413
+    A2Nrr  = 12220*((1-Cb)*frac(T,B))**2-2720*(1-Cb)*frac(T,B)+146
+    A2Nvvr = -515*Cb*frac(T,B)+144
+    A2Nvrr = -295*Cb*frac(B,T)+645
+    A3Yr   = -38*frac(Cb*B,T)**2+197*frac(Cb*B,T)-250
+    A3Yrr  = -128000*(1-Cb)**5
+    A3Yvvr = -90800*((1-Cb)*frac(T,B))**2+25500*(1-Cb)*frac(T,B)-1400
+    A3Nvv  = -1980*(1-Cb)+467
+    A3Nrr  = -12160*((1-Cb)*frac(T,B))**2+2650*(1-Cb)*frac(T,B)-137
+    A3Nvvr = 508*Cb*frac(T,B)-143
+    A3Nvrr = 312*Cb*frac(B,T)-678
 
-    # Correction by Tang et al 2020
-    k = (2*d)/L
-    def k_e(q): return k/(d/(2*h) + ((np.pi*d) /
-                                     (2*h) * 1/math.tan((np.pi*d)/(2*h)))**q)
+    gv = K0+frac(2,3)*K1*frac(B1,T)+frac(8,15)*K2*(frac(B1,T))**2
+    gnr = K0+frac(8,15)*K1*frac(B1,T)+frac(40,105)*K2*(frac(B1,T))**2
+    fyr = K0+frac(2,5)*K1*frac(B1,T)+frac(24,105)*K2*(frac(B1,T))**2
+    fnr = K0+frac(1,2)*K1*frac(B1,T)+frac(1,3)*K2*(frac(B1,T))**2
+    fyv = 1.5*fnr-0.5
+    fnv = K0+K1*frac(B1,T)+K2*frac(B1,T)**2
 
-    v.Y_v_dash = -(0.5*np.pi*k_e(2.3)+1.4*Cb*B/L)
-    v.Y_r_dash = 0.25*np.pi * k_e(0.7)
-    v.N_v_dash = -k_e(1.7)
-    v.N_r_dash = -(0.54*k_e(0.7) - k_e(0.7)**2)
+    # Corrections 
 
-    v.N_vvr_dash *= 1+6*(d/h)**2.5
-    v.N_vrr_dash *= 1+6*(d/h)**2.5
+    v.X_vv_dash *= fyv
+    v.X_vvvv_dash *= fyv
+    v.X_rr_dash *= fnr
+    v.X_vr_dash *= fyr
+    v.Y_vvv_dash *= fyv
+    v.N_v_dash *= fnv
+    v.N_vvv_dash *= fyv
+    v.Y_rrr_dash *= gnr
+    v.N_rrr_dash *= gnr
+    v.Y_vvr_dash *= fyv
+    v.N_vrr_dash *= fyv
 
-    # Thrust deduction factor
-    oneminustp = 1 - v.t_P
-    oneminustp *= 1/(1-0.2*(d/h) + 0.7295*(d/h)**2)
-    v.t_P = -oneminustp + 1
+    v.Y_v_dash *= (-TH+frac(1,(1-TH)**(frac(0.4*Cb*B,T))))
+    v.Y_r_dash *= (1+A1Yr*TH+A2Yr*TH**2+A3Yr*TH**3)
+    v.N_r_dash *= (-TH+frac(1,(1-TH)**(frac(-14.28*T,L)+1.5)))
 
-    # Wake fraction coefficient
-    oneminuswp = 1 - v.w_P0
-    oneminuswp *= math.cos(1.4*Cb*d/h)
-    v.w_P0 = -oneminuswp + 1
-
-    # Flow-straightening coefficient
-    flow_str_coef = 1 + 0.0161*(d/h) + 4.4222*(d/h)**2 - 4.9825*(d/h)**3
-    if all(getattr(v,k) is not None for k in ("gamma_R_minus", "gamma_R_plus")):
-        v.gamma_R_minus *= flow_str_coef
-        v.gamma_R_plus *= flow_str_coef
+    # Corrections for wake fraction, thrust deduction,
+    # and flow-straighening coefficients
+    v.w_P0 *= (1+(-4.932+0.6425*frac(Cb*L,T)-0.0165*(frac(Cb*L,T)**2))*TH**1.655)
+    ctp = 1+((29.495-14.089*frac(Cb*L,B)**2)*(frac(1,250)-frac(7*TH,200)-frac(13*TH**2,125)))
+    v.t_P = -((ctp)*(1-v.t_P))+1
+    cgr1 = 1+((frac(-5129,500)+178.207*frac(Cb*B,L)-frac(2745,4)*frac(Cb*B,L)**2)*(frac(-1927,500)+frac(2733*TH,200)-frac(2617*TH**2,250)))
+    cgr2 = 1+(frac(-541,4)+2432.95*frac(Cb*B,L)-10137.7*frac(Cb*B,L)**2)*TH**4.81
+    if TH <= (-0.332*frac(T,B)+0.581):
+        v.gamma_R_minus = -((cgr2)*(1-v.gamma_R_minus))+1
+        v.gamma_R_plus = -((cgr2)*(1-v.gamma_R_plus))+1
     else:
-        v.gamma_R *= flow_str_coef
+        v.gamma_R_minus = -((cgr1)*(1-v.gamma_R_minus))+1
+        v.gamma_R_plus = -((cgr1)*(1-v.gamma_R_plus))+1
 
-    coef = (water_depth/d) - 1
 
-    mxshallow = (coef**1.3+3.77+1.14*(B/d)-0.233*(L/d)-3.43*Cb)/(coef**1.3)
-    myshallow = (coef**0.82+0.413+0.0320*(B/d)+0.129*(B/d)**2)/(coef**0.82)
-    Jzshallow = (coef**0.82+0.413+0.0192*(B/d)+0.00554*(B/d)**2)/(coef**0.82)
-
-    v.m_x_dash *= mxshallow
-    v.m_y_dash *= myshallow
-    v.J_z_dash *= Jzshallow
 
 
 def _C_X(g_rc: float) -> float:

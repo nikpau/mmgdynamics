@@ -49,8 +49,8 @@ def turning_maneuver(ivs: InitialValues, vessel: Vessel,
     # 35°/20s=1.75°/s
     delta_list = np.concatenate(
         [np.array([0.]),
-         np.linspace(0.0, maxdeg, 20),
-         np.full(time-20, maxdeg)]
+         np.linspace(0.0, maxdeg, 15),
+         np.full(time-15, maxdeg)]
     )
 
     if dir == "starboard":
@@ -97,16 +97,19 @@ def turning_maneuver(ivs: InitialValues, vessel: Vessel,
             res[0, s] = res[0, s-1] + v_x
             res[1, s] = res[1, s-1] + v_y
 
-        res[2, s] = math.sqrt(u**2+v**2)
+        U = math.sqrt(u**2+v**2)
+        drift = -math.atan(-v/u)*180/math.pi
+        res[2, s] = drift
 
         # Set current solution as next initial values
         uvr = np.hstack(sol)
 
     return res
 
-def plot_r(t: Sequence[float]):
+def plot_r(t: list[Sequence[float]]):
     plt.figure(figsize=(16, 10))
-    plt.plot(np.arange(len(t[2])), t[2], linewidth=2.5,c="black")
+    for list in t:
+        plt.plot(np.arange(len(list[2])), list[2], linewidth=2.5)
     plt.xlabel(r"$t(s)$", fontsize=14)
     plt.ylabel(r"$r(-)$", fontsize=14)
     plt.title(
@@ -127,8 +130,10 @@ def plot_trajecory(t: Sequence[np.ndarray], vessel: Vessel) -> None:
 
     plt.figure(figsize=(16, 10))
 
-    for tr in t:
-        plt.plot(tr[1]/vessel.Lpp, tr[0]/vessel.Lpp, linewidth=2.5,c="black")
+    # for tr in t:
+    #     plt.plot(tr[1]/vessel.Lpp, tr[0]/vessel.Lpp, linewidth=2.5)
+    plt.plot(t[0][1]/vessel.Lpp, t[0][0]/vessel.Lpp, linewidth=2.5, color="orange")
+    plt.plot(t[1][1]/vessel.Lpp, t[1][0]/vessel.Lpp, linewidth=2.5)
 
     # This is just for the arrows depicting the flow direction
     # For now this is just added manually
@@ -139,6 +144,7 @@ def plot_trajecory(t: Sequence[np.ndarray], vessel: Vessel) -> None:
     plt.ylabel(r"$x_0/L$", fontsize=14)
     plt.axhline(y=0, color='black', linestyle=':')
     plt.axvline(x=0, color='black', linestyle=':')
+    plt.axis("equal")
     plt.grid(True)
     # plt.savefig(PLOTDIR+"/"+"turning.pdf")
     plt.show()
@@ -447,8 +453,8 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
             nps=nps,
             delta=0.0,
             fl_psi=fl_psi,
-            fl_vel=1.0,
-            water_depth=None,
+            fl_vel=0.0,
+            water_depth=25,
             sps=1,
             atol=1e-6,rtol=1e-3
         )
@@ -472,8 +478,7 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
         # Set current solution as next initial values
         uvr = np.hstack(sol)
         
-        #print(math.sqrt(u**2+v**2))
-        print(r)
+        print(math.sqrt(u**2+v**2))
 
         # Rectangle of the heading transformed vessel
         vessel_rect = Rectangle(anchor,
@@ -493,7 +498,7 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
             ax.add_patch(vessel_rect)
 
         #print(timestep)
-    
+    plt.axis("equal")
     plt.show()
 
 def static_current_test(vessel: Vessel, ang_list: Sequence[float]) -> None:
