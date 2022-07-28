@@ -19,10 +19,11 @@ __all__ = ["step"]
 
 def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps: float, 
          delta: float, psi: float, fl_psi: Optional[float] = None,
-         fl_vel: Optional[float] = None, water_depth: Optional[float] = None, 
-         debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5,
+         fl_vel: Optional[float] = None, w_vel: Optional[float] = None, 
+         beta_w: Optional[float] = None, water_depth: Optional[float] = None, 
+         debug: bool = False, atol: float = 1e-5, rtol: float = 1e-5, 
          **sol_options # Additional options (see help(solve_ivp))
-         )->Any:
+        )->Any:
     """Solve the MMG system for a given vessel for an arbitrarily long timestep
     
     Args:
@@ -73,7 +74,8 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps: float,
                          t_eval=np.array([float(sps)]), # Evaluate the result at the final time
                          args=(vessel if water_depth is None else sh_vessel, # Order is important! Do not change
                             psi,delta,nps,
-                            fl_psi,fl_vel),
+                            fl_psi,fl_vel,
+                            w_vel,beta_w),
                          method="RK23",
                          rtol = rtol,
                          atol = atol,

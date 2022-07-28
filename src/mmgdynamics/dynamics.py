@@ -19,8 +19,9 @@ __all__ = ["calilbrate"]
 # System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
 
 
-def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
-                 delta: float, nps: float, fl_psi: float, fl_vel: float) -> np.ndarray:
+def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, 
+                psi:float,delta: float, nps: float, fl_psi: float, 
+                fl_vel: float,w_vel:float, beta_w: float) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
     for the MMG standard model
 
@@ -187,6 +188,28 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     else:
         X_C, Y_C, N_C = 0.0, 0.0, 0.0
 
+        #-------------------------------- Wind ---------------------------------
+    if w_vel != 0.0:
+        
+        # relative velocity computations
+        u_w = w_vel * math.cos(beta_w - psi)
+        v_w = w_vel * math.sin(beta_w - psi)
+
+        u_rw = u - u_w
+        v_rw = v_m - v_w
+
+        V_rw_sq = u_rw**2 + v_rw**2
+        g_rw = -math.atan2(v_rw, u_rw)
+
+        # forces               
+        X_W = 1/2 * p.rho_air * V_rw_sq * _C_X_wind(g_rw) * p.A_Fw
+        Y_W = 1/2 * p.rho_air * V_rw_sq * _C_Y_wind(g_rw) * p.A_Lw
+        N_W = 1/2 * p.rho_air * V_rw_sq * _C_N_wind(g_rw) * p.A_Lw * p.Lpp
+
+    else:
+        X_W, Y_W, N_W = 0.0, 0.0, 0.0
+
+
     # Added masses and added moment of inertia
     m_x = p.m_x_dash * (0.5 * p.rho * (p.Lpp**2) * p.d)
     m_y = p.m_y_dash * (0.5 * p.rho * (p.Lpp**2) * p.d)
@@ -195,17 +218,17 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     I_zG = m*(0.25*p.Lpp)**2
 
     # Longitudinal acceleration
-    d_u = ((X_H + X_R + X_P + X_C) + (m + m_y) * v_m *
+    d_u = ((X_H + X_R + X_P + X_C + X_W) + (m + m_y) * v_m *
            r + p.x_G * m * (r**2)) / (m + m_x)
 
     # Lateral acceleration
     f = (I_zG + J_z + (p.x_G**2) * m)
 
-    d_vm = ((Y_H+Y_R+Y_C) - (m+m_x)*u*r - ((p.x_G*m*(N_H + N_R + N_C))/(f)) + ((p.x_G**2*m**2*u*r)/(f)))\
+    d_vm = ((Y_H+Y_R+Y_C + Y_W) - (m+m_x)*u*r - ((p.x_G*m*(N_H + N_R + N_C + N_W))/(f)) + ((p.x_G**2*m**2*u*r)/(f)))\
         / ((m+m_y)-((p.x_G**2*m**2)/(f)))
 
     # Yaw rate acceleration
-    d_r = ((N_H + N_R + N_C) - (p.x_G * m * d_vm + p.x_G * m * u * r)) / \
+    d_r = ((N_H + N_R + N_C + N_W) - (p.x_G * m * d_vm + p.x_G * m * u * r)) / \
         (I_zG + J_z + (p.x_G**2) * m)
 
     return np.array([d_u, d_vm, d_r])
@@ -299,7 +322,14 @@ def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
         v.gamma_R_plus = -((cgr1)*(1-v.gamma_R_plus))+1
 
 
+def _C_X_wind(g_w, cx=0.9):
+    return -cx*math.cos(g_w)
 
+def _C_Y_wind(g_w, cy=0.95):
+    return cy*math.sin(g_w)
+
+def _C_N_wind(g_w, cn=0.2):
+    return cn*math.sin(2*g_w)
 
 def _C_X(g_rc: float) -> float:
 
