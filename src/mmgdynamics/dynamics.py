@@ -43,10 +43,8 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, psi:float,
     p = params
 
     # u: long vel, v:lat. vel, r:yaw rate (d_psi/dt),delta: rudder angle, nps: propeller revs per second
-    u, v, r  = X
+    u, v_m, r  = X
 
-    # v = v_m + x_G*r | lateral velocity midship + x coord center of gravity * yaw rate
-    v_m = v - p.x_G * r
     U = math.sqrt(u**2 + v_m**2)  # Overall speed of the vessel
 
     if U == 0.0:  # No vessel movement. Velocity in all directions = 0
