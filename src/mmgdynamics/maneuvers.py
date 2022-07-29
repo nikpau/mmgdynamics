@@ -470,7 +470,7 @@ def current_wind_test(vessel: Vessel, ivs: InitialValues,
 
         # Transform to earth-fixed coordinate system
 
-        head =  float((head + r) % twopi)
+        head = float((head + r) % twopi)
         vy = math.cos(head) * u - math.sin(head) * v
         vx = math.sin(head) * u + math.cos(head) * v
 
@@ -482,7 +482,8 @@ def current_wind_test(vessel: Vessel, ivs: InitialValues,
         # Set current solution as next initial values
         uvr = np.hstack(sol)
         
-        print(math.sqrt(u**2+v**2))
+        speed = math.sqrt(u**2+v**2)
+        print("Speed: {:.2f}".format(speed),f" | Timestep: {timestep}")
 
         # Rectangle of the heading transformed vessel
         vessel_rect = Rectangle(anchor,
@@ -493,13 +494,14 @@ def current_wind_test(vessel: Vessel, ivs: InitialValues,
                                 edgecolor=colors[0],
                                 facecolor = to_rgba(colors[0],0.1))
 
-        ax.quiver(qx, qy,
-                  np.full((11, 11), -math.sin(beta_w)),
-                  np.full((11, 11), -math.cos(beta_w)),
-                  scale=20, headwidth=2)
 
         if timestep % 50 == 0:
             ax.add_patch(vessel_rect)
+
+    ax.quiver(qx, qy,
+                np.full((11, 11), -math.sin(beta_w)),
+                np.full((11, 11), -math.cos(beta_w)),
+                scale=20, headwidth=2)
 
         #print(timestep)
     plt.axis("equal")

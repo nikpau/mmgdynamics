@@ -217,18 +217,22 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
     m = p.displ*p.rho
     I_zG = m*(0.25*p.Lpp)**2
 
+    FX = X_H + X_R + X_P + X_C + X_W
+    FY = Y_H + Y_R + Y_C + Y_W
+    FN = N_H + N_R + N_C + N_W
+
     # Longitudinal acceleration
-    d_u = ((X_H + X_R + X_P + X_C + X_W) + (m + m_y) * v_m *
+    d_u = ((FX) + (m + m_y) * v_m *
            r + p.x_G * m * (r**2)) / (m + m_x)
 
     # Lateral acceleration
     f = (I_zG + J_z + (p.x_G**2) * m)
 
-    d_vm = ((Y_H+Y_R+Y_C + Y_W) - (m+m_x)*u*r - ((p.x_G*m*(N_H + N_R + N_C + N_W))/(f)) + ((p.x_G**2*m**2*u*r)/(f)))\
+    d_vm = ((FY) - (m+m_x)*u*r - ((p.x_G*m*(FN))/(f)) + ((p.x_G**2*m**2*u*r)/(f)))\
         / ((m+m_y)-((p.x_G**2*m**2)/(f)))
 
     # Yaw rate acceleration
-    d_r = ((N_H + N_R + N_C + N_W) - (p.x_G * m * d_vm + p.x_G * m * u * r)) / \
+    d_r = ((FN) - (p.x_G * m * d_vm + p.x_G * m * u * r)) / \
         (I_zG + J_z + (p.x_G**2) * m)
 
     return np.array([d_u, d_vm, d_r])

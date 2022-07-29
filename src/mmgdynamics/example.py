@@ -84,14 +84,13 @@ angles = np.arange(180)
 angles = angles/180*np.pi
 current_wind_test(
     vessel, ivs,
-    iters=7000,
+    iters=4000,
     fl_psi=0.0,
     fl_vel=0.0,
     w_vel=15.0,
     beta_w=dtr(270)
     )
 #static_current_test(vessel,angles)
-
 
 if ZIGZAG:
     z, l = zigzag_maneuver(ivs, vessel, dir=1, dps=4.76, max_deg=10,wd=[1.2*vessel.d,None])
