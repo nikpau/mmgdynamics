@@ -61,7 +61,8 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
     beta_P = beta - (p.x_P/p.Lpp) * r_dash
     if all(getattr(p,k) is not None for k in ("C_1","C_2_plus","C_2_minus")):
         C_2 = p.C_2_plus if beta_P >= 0 else p.C_2_minus
-        w_P = 1-(1+(1-math.exp(-p.C_1*abs(beta_P))*(C_2-1))*(1-p.w_P0))
+        tmp = 1-math.exp(-p.C_1*abs(beta_P))*(C_2-1)
+        w_P = 1-(1-p.w_P0)*(1+tmp)
     else:
         w_P = p.w_P0 * math.exp(-4.0 * beta_P**2)
 
@@ -305,11 +306,14 @@ def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     v.Y_rrr_dash *= gnr
     v.N_rrr_dash *= gnr
     v.Y_vvr_dash *= fyv
-    v.N_vrr_dash *= fyv
+    v.Y_vrr_dash *= fyv
 
     v.Y_v_dash *= (-TH+frac(1,(1-TH)**(frac(0.4*Cb*B,T))))
     v.Y_r_dash *= (1+A1Yr*TH+A2Yr*TH**2+A3Yr*TH**3)
     v.N_r_dash *= (-TH+frac(1,(1-TH)**(frac(-14.28*T,L)+1.5)))
+
+    v.N_vvr_dash *= (1+A1Nvvr*TH+A2Nvvr*TH**2+A3Nvvr*TH**3)
+    v.N_vrr_dash *= (1+A1Nvrr*TH+A2Nvrr*TH**2+A3Nvrr*TH**3)
 
     # Corrections for wake fraction, thrust deduction,
     # and flow-straighening coefficients
