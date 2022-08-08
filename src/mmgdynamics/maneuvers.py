@@ -73,10 +73,12 @@ def turning_maneuver(ivs: InitialValues, vessel: Vessel,
         sol = step(X=uvr,
                    psi= psi,   
                    vessel=vessel,
-                   sps=1,
+                   dT=1,
                    nps=ivs.nps,
                    delta=delta_list[s],
                    fl_vel=None,
+                   w_vel=0,
+                   beta_w=0,
                    water_depth=water_depth
                 )
 
@@ -186,7 +188,7 @@ def zigzag_maneuver(ivs: InitialValues, vessel: Vessel,
             # Solve the ODE system for one second at a time
             sol = step(X=uvr,
                     vessel=vessel,
-                    sps=1,
+                    dT=1,
                     psi=psi,
                     nps=ivs.nps,
                     delta=delta,
@@ -354,7 +356,7 @@ def free_flow_test(vessel:Vessel, ivs: InitialValues):
                 fl_psi=None,
                 fl_vel=None,
                 water_depth=depth,
-                sps=1,
+                dT=1,
                 atol=1e-6,rtol=1e-3
             )
 
@@ -459,8 +461,8 @@ def current_wind_test(vessel: Vessel, ivs: InitialValues,
             w_vel=w_vel,
             beta_w=beta_w,
             water_depth=None,
-            sps=1,
-            atol=1e-6,rtol=1e-3
+            dT=1,
+            atol=1e-5,rtol=1e-5
         )
 
         timestep += 1

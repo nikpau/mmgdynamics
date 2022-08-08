@@ -74,7 +74,7 @@ iters = 3000
 #     nps   = 0.65 # Propeller revs [s⁻¹]
 # )
 
-#p = turning_maneuver(ivs, vessel, iters, "port",maxdeg=35, water_depth=25)
+# p = turning_maneuver(ivs, vessel, iters, "port",maxdeg=35, water_depth=25)
 #q = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35, water_depth=8)
 #plot_trajecory([s,p], vessel)
 #plot_r([s,p])
@@ -85,10 +85,10 @@ angles = angles/180*np.pi
 current_wind_test(
     vessel, ivs,
     iters=4000,
-    fl_psi=0.0,
-    fl_vel=0.0,
-    w_vel=15.0,
-    beta_w=dtr(270)
+    fl_psi=dtr(90.0),
+    fl_vel=1.0,
+    w_vel=0.0,
+    beta_w=dtr(90)
     )
 #static_current_test(vessel,angles)
 

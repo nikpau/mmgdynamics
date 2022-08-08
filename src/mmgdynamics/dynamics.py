@@ -21,7 +21,7 @@ __all__ = ["calilbrate"]
 
 def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, 
                 psi:float,delta: float, nps: float, fl_psi: float, 
-                fl_vel: float,w_vel:float, beta_w: float) -> np.ndarray:
+                fl_vel: float,w_vel:float, beta_w: float, dT: float) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
     for the MMG standard model
 
@@ -45,6 +45,20 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
 
     # u: long vel, v:lat. vel, r:yaw rate (d_psi/dt),delta: rudder angle, nps: propeller revs per second
     u, v_m, r  = X
+    
+    if fl_vel is not None:
+        u_c = fl_vel * math.cos(fl_psi - psi - math.pi)
+        v_c = fl_vel * math.sin(fl_psi - psi - math.pi)
+        
+        # Relative velocities
+        u_r = u - u_c
+        v_r = v_m - v_c
+
+        # Hydrodynamic forces with relative velocities
+        u_pure = u
+        vm_pure = v_m
+        u = u_r
+        v_m = v_r
 
     U = math.sqrt(u**2 + v_m**2)  # Overall speed of the vessel
 
@@ -162,33 +176,6 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
     # yaw moment around midship by steering
     N_R = -(-0.5*p.Lpp + p.a_H * x_H) * F_N * math.cos(delta)
 
-    # Forces related to currents:
-    if fl_vel is not None and fl_vel != 0.:
-        
-        # Longitudinal velocity of current dependent on ship heading
-        u_c = -fl_vel * math.cos(fl_psi - psi)
-        u_rc = u - u_c
-
-        # Lateral velocity of current dependent on ship heading
-        v_c = fl_vel * math.sin(fl_psi - psi)
-        v_rc = v_m - v_c
-
-        g_rc = abs(-math.atan2(v_rc,u_rc))
-
-        # Longitudinal current force
-        A_Fc = p.B * p.d * p.C_b
-        X_C = 0.5 * p.rho * A_Fc * _C_X(g_rc) * abs(u_rc) * u_rc
-
-        # Lateral current force
-        A_Lc = p.Lpp * p.d * p.C_b
-        Y_C = 0.5 * p.rho * A_Lc * _C_Y(g_rc) * abs(v_rc) * v_rc
-
-        # Current Moment
-        N_C = 0.5 * p.rho * A_Lc * p.Lpp * _C_N(g_rc) * abs(v_rc) * v_rc
-
-    else:
-        X_C, Y_C, N_C = 0.0, 0.0, 0.0
-
         #-------------------------------- Wind ---------------------------------
     if w_vel != 0.0:
         
@@ -217,26 +204,36 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
     J_z = p.J_z_dash * (0.5 * p.rho * (p.Lpp**4) * p.d)
     m = p.displ*p.rho
     I_zG = m*(0.25*p.Lpp)**2
+    
+    # Mass matricies
+    M_RB = np.array([[m, 0.0, 0.0],
+                    [0.0, m, m * p.x_G],
+                    [0.0, m * p.x_G, I_zG]])
+    M_A = np.array([[m_x, 0.0, 0.0],
+                    [0.0, m_y, 0.0],
+                    [0.0, 0.0, J_z + (p.x_G**2) * m]])
+    M_inv = np.linalg.inv(M_RB + M_A)
 
-    FX = X_H + X_R + X_P + X_C + X_W
-    FY = Y_H + Y_R + Y_C + Y_W
-    FN = N_H + N_R + N_C + N_W
+    FX = X_H + X_R + X_P + X_W
+    FY = Y_H + Y_R + Y_W
+    FN = N_H + N_R + N_W
+    
+    F = np.array([FX,FY,FN])
+    
+    if fl_vel != 0.0 and fl_vel is not None:
+        nu_c_dot = np.array([v_c*r, -u_c*r, 0.0])
+        return np.dot(
+            M_inv, F - np.dot(_C_RB(m=m,x_G=p.x_G,r=r), np.array([u_pure, vm_pure, r]))     
+            - np.dot(_C_A(vm=v_m,u=u,m_x=m_x,m_y=m_y), np.array([u_r, v_r, r])  
+            + np.dot(M_A, nu_c_dot))
+        )
+    else:
+        return np.dot(
+            M_inv, F - np.dot((_C_RB(m=m,x_G=p.x_G,r=r) + _C_A(vm=v_m,u=u,m_x=m_x,m_y=m_y)), 
+                              np.array([u, v_m, r]))
+            )
 
-    # Longitudinal acceleration
-    d_u = ((FX) + (m + m_y) * v_m *
-           r + p.x_G * m * (r**2)) / (m + m_x)
 
-    # Lateral acceleration
-    f = (I_zG + J_z + (p.x_G**2) * m)
-
-    d_vm = ((FY) - (m+m_x)*u*r - ((p.x_G*m*(FN))/(f)) + ((p.x_G**2*m**2*u*r)/(f)))\
-        / ((m+m_y)-((p.x_G**2*m**2)/(f)))
-
-    # Yaw rate acceleration
-    d_r = ((FN) - (p.x_G * m * d_vm + p.x_G * m * u * r)) / \
-        (I_zG + J_z + (p.x_G**2) * m)
-
-    return np.array([d_u, d_vm, d_r])
 
 def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     """Correct the hydrodynamic derivatives and
@@ -318,16 +315,16 @@ def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     # Corrections for wake fraction, thrust deduction,
     # and flow-straighening coefficients
     v.w_P0 *= (1+(-4.932+0.6425*frac(Cb*L,T)-0.0165*(frac(Cb*L,T)**2))*TH**1.655)
-    ctp = 1+((29.495-14.089*frac(Cb*L,B)**2)*(frac(1,250)-frac(7*TH,200)-frac(13*TH**2,125)))
-    v.t_P = -((ctp)*(1-v.t_P))+1
+    ctp = 1+((29.495-14.089*frac(Cb*L,B)+1.6486*frac(Cb*L,B)**2)*(frac(1,250)-frac(7*TH,200)-frac(13*TH**2,125)))
+    v.t_P = 1-ctp*(1-v.t_P)
     cgr1 = 1+((frac(-5129,500)+178.207*frac(Cb*B,L)-frac(2745,4)*frac(Cb*B,L)**2)*(frac(-1927,500)+frac(2733*TH,200)-frac(2617*TH**2,250)))
     cgr2 = 1+(frac(-541,4)+2432.95*frac(Cb*B,L)-10137.7*frac(Cb*B,L)**2)*TH**4.81
     if TH <= (-0.332*frac(T,B)+0.581):
-        v.gamma_R_minus = -((cgr2)*(1-v.gamma_R_minus))+1
-        v.gamma_R_plus = -((cgr2)*(1-v.gamma_R_plus))+1
+        v.gamma_R_minus *= cgr2
+        v.gamma_R_plus *= cgr2
     else:
-        v.gamma_R_minus = -((cgr1)*(1-v.gamma_R_minus))+1
-        v.gamma_R_plus = -((cgr1)*(1-v.gamma_R_plus))+1
+        v.gamma_R_minus *= cgr1
+        v.gamma_R_plus *= cgr1
 
 
 def _C_X_wind(g_w, cx=0.9):
@@ -337,43 +334,19 @@ def _C_Y_wind(g_w, cy=0.95):
     return cy*math.sin(g_w)
 
 def _C_N_wind(g_w, cn=0.2):
-    return cn*math.sin(2*g_w)
+    return cn*math.sin(2*g_w)    
 
-def _C_X(g_rc: float) -> float:
+def _C_RB(*,m,x_G, r):
+    return np.array(
+        [[0.0, -m * r, -m * x_G * r],
+        [m * r, 0.0, 0.0],
+        [m * x_G * r, 0.0, 0.0]])
 
-    return (
-       -0.0665*g_rc**5 + 
-        0.5228*g_rc**4 - 
-        1.4365*g_rc**3 + 
-        1.6024*g_rc**2 - 
-        0.2967*g_rc - 
-        0.4691)
-
-
-def _C_Y(g_rc: float) -> float:
-
-    # return (
-    #     0.1273*g_rc**4 - 
-    #     0.8020*g_rc**3 + 
-    #     1.3216*g_rc**2 - 
-    #     0.1799*g_rc)
-    return (
-      0.05930686*g_rc**4 -
-      0.37522028*g_rc**3 +
-      0.46812233*g_rc**2 +
-      0.39114522*g_rc -
-      0.00273578
-    )
-
-def _C_N(g_rc: float) -> float:
-
-    return (
-       -0.0140*g_rc**5 + 
-        0.1131*g_rc**4 -
-        0.2757*g_rc**3 + 
-        0.1617*g_rc**2 + 
-        0.0728*g_rc)
-
+def _C_A(*,m_x,m_y,u, vm):
+    return np.array(
+        [[0.0, 0.0, -m_y * vm],
+        [0.0, 0.0, m_x * u],
+        [0.0, 0.0, 0.0]])
 
 def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     """Calculate relevant hydrodynamic derivatives based on a minimal

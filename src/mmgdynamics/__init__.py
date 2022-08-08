@@ -17,7 +17,7 @@ __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
 __all__ = ["step"]
 
 
-def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps: float, 
+def step(*, X: np.ndarray,vessel: Vessel, dT: float, nps: float, 
          delta: float, psi: float, fl_psi: Optional[float] = None,
          fl_vel: Optional[float] = None, w_vel: Optional[float] = None, 
          beta_w: Optional[float] = None, water_depth: Optional[float] = None, 
@@ -63,24 +63,25 @@ def step(*, X: np.ndarray,vessel: Vessel, sps: float, nps: float,
         if water_depth < vessel.d:
             raise LogicError(
                 "Water depth cannot be less than ship draft.\n"
-                "Water depth: {} | Ship draft: {}".format(np.round(water_depth,3), vessel.d)
+                f"Water depth: {np.round(water_depth,3)} | Ship draft: {vessel.d}"
                 )
         sh_vessel = copy.deepcopy(vessel)
         _shallow_water_hdm(sh_vessel, water_depth)
 
-    solution = solve_ivp(fun=mmg_dynamics,
-                         t_span=(float(0), float(sps)), # Calculate the system dynamics for this time span
-                         y0=X,
-                         t_eval=np.array([float(sps)]), # Evaluate the result at the final time
-                         args=(vessel if water_depth is None else sh_vessel, # Order is important! Do not change
-                            psi,delta,nps,
-                            fl_psi,fl_vel,
-                            w_vel,beta_w),
-                         method="RK23",
-                         rtol = rtol,
-                         atol = atol,
-                         **sol_options
-                        )
+    solution = solve_ivp(
+        fun=mmg_dynamics,
+        t_span=(float(0), float(1)), # Calculate the system dynamics for this time span
+        y0=X,
+        t_eval=np.array([float(1)]), # Evaluate the result at the final time
+        args=(vessel if water_depth is None else sh_vessel, # Order is important! Do not change
+            psi,delta,nps,
+            fl_psi,fl_vel,
+            w_vel,beta_w,dT),
+        method="RK23",
+        rtol = rtol,
+        atol = atol,
+        **sol_options
+    )
 
     # Return the complete solver output, with all steps
     if debug:
