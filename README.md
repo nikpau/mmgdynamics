@@ -1,4 +1,4 @@
-# MMG Standard model with extensions for currents and shallow water
+# MMG Standard model with extensions for winds, currents and shallow water
 
 In here you find an implementation of the [MMG standard model](https://doi.org/10.1007/s00773-014-0293-y) by Yasukawa, H., Yoshimura, Y. (2015).
 
