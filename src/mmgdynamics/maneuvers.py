@@ -73,10 +73,12 @@ def turning_maneuver(ivs: InitialValues, vessel: Vessel,
         sol = step(X=uvr,
                    psi= psi,   
                    vessel=vessel,
-                   sps=1,
+                   dT=1,
                    nps=ivs.nps,
                    delta=delta_list[s],
                    fl_vel=None,
+                   w_vel=0,
+                   beta_w=0,
                    water_depth=water_depth
                 )
 
@@ -186,7 +188,7 @@ def zigzag_maneuver(ivs: InitialValues, vessel: Vessel,
             # Solve the ODE system for one second at a time
             sol = step(X=uvr,
                     vessel=vessel,
-                    sps=1,
+                    dT=1,
                     psi=psi,
                     nps=ivs.nps,
                     delta=delta,
@@ -354,7 +356,7 @@ def free_flow_test(vessel:Vessel, ivs: InitialValues):
                 fl_psi=None,
                 fl_vel=None,
                 water_depth=depth,
-                sps=1,
+                dT=1,
                 atol=1e-6,rtol=1e-3
             )
 
@@ -411,7 +413,9 @@ def free_flow_test(vessel:Vessel, ivs: InitialValues):
     
     plt.savefig("turning_circles.pdf")
 
-def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -> None:
+def current_wind_test(vessel: Vessel, ivs: InitialValues, 
+                      iters: int,fl_psi: float, fl_vel: float,
+                      w_vel: float, beta_w:float) -> None:
 
     fig = plt.figure()
     #fig.patch.set_facecolor("#212529")
@@ -453,10 +457,12 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
             nps=nps,
             delta=0.0,
             fl_psi=fl_psi,
-            fl_vel=0.0,
-            water_depth=25,
-            sps=1,
-            atol=1e-6,rtol=1e-3
+            fl_vel=fl_vel,
+            w_vel=w_vel,
+            beta_w=beta_w,
+            water_depth=None,
+            dT=1,
+            atol=1e-5,rtol=1e-5
         )
 
         timestep += 1
@@ -466,7 +472,7 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
 
         # Transform to earth-fixed coordinate system
 
-        head =  float((head + r) % twopi)
+        head = float((head + r) % twopi)
         vy = math.cos(head) * u - math.sin(head) * v
         vx = math.sin(head) * u + math.cos(head) * v
 
@@ -478,7 +484,8 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
         # Set current solution as next initial values
         uvr = np.hstack(sol)
         
-        print(math.sqrt(u**2+v**2))
+        speed = math.sqrt(u**2+v**2)
+        print("Speed: {:.2f}".format(speed),f" | Timestep: {timestep}")
 
         # Rectangle of the heading transformed vessel
         vessel_rect = Rectangle(anchor,
@@ -489,13 +496,14 @@ def current_test(vessel: Vessel, ivs: InitialValues, iters: int,fl_psi: float) -
                                 edgecolor=colors[0],
                                 facecolor = to_rgba(colors[0],0.1))
 
-        ax.quiver(qx, qy,
-                  np.full((11, 11), -math.sin(fl_psi)),
-                  np.full((11, 11), -math.cos(fl_psi)),
-                  scale=20, headwidth=2)
 
-        if timestep % 20 == 0:
+        if timestep % 50 == 0:
             ax.add_patch(vessel_rect)
+
+    ax.quiver(qx, qy,
+                np.full((11, 11), -math.sin(beta_w)),
+                np.full((11, 11), -math.cos(beta_w)),
+                scale=20, headwidth=2)
 
         #print(timestep)
     plt.axis("equal")

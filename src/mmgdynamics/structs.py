@@ -7,8 +7,8 @@ import numpy as np
 @dataclass
 class Vessel:
     
-    # Water density
     rho: float # Water density
+    rho_air: float # Air density
     
     # Vessel particulars
     C_b: float # Block Coefficient
@@ -28,6 +28,10 @@ class Vessel:
     t_P: float # Thrust deduction factor
     x_H_dash: float # Longitudinal coordinate of acting point of the additional lateral force
     a_H: float # Rudder force increase factor
+
+    # Experimental wind projected areas+
+    A_Fw: float # Frontal projected area of the wind
+    A_Lw: float # Lateral projected area of the wind
     
     # MMG hydrodynamic derivatives
     R_0_dash: float # frictional resistance coefficient

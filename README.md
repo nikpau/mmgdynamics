@@ -1,4 +1,4 @@
-# MMG Standard model with extensions for currents and shallow water
+# MMG Standard model with extensions for winds, currents and shallow water
 
 In here you find an implementation of the [MMG standard model](https://doi.org/10.1007/s00773-014-0293-y) by Yasukawa, H., Yoshimura, Y. (2015).
 
@@ -46,10 +46,14 @@ my_vessel = {
 full_vessel = calibrate(MinimalVessel(**my_vessel),rho = 1000)
 ```
 
-### Extension for currents
+### Extension for winds and currents
 
-Current forces are calculated according to [Budak and Beji, 2020](https://doi.org/10.1016/j.oceaneng.2020.108126). 
-The angle of attack for currents is set as an angle from the global reference frame. 0° current are parallel to the x-axis.
+Current and wind forces are calculated according to [Fossen, 2011](https://doi.org/10.1002/9781119994138). 
+The angle of attack for currents is set as an angle from the global reference frame. 0° current are parallel to the x-axis. Angles rotate clockwise, directions are modeled as `coming from`. (Wind direction of 90° means wind flows from east to west.)
+
+### Shallow water adaption
+
+The effects of shallow water are incorporated using various semi-empirical formulas summarized in [Taimuri et. al. (2020)](https://doi.org/10.1016/j.oceaneng.2020.108103)
 
 ## Examples
 
