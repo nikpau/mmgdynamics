@@ -177,7 +177,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
     N_R = -(-0.5*p.Lpp + p.a_H * x_H) * F_N * math.cos(delta)
 
         #-------------------------------- Wind ---------------------------------
-    if w_vel != 0.0:
+    if w_vel != 0.0 and w_vel is not None:
         
         # relative velocity computations
         u_w = w_vel * math.cos(beta_w - psi)
