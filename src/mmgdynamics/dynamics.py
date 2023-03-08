@@ -119,7 +119,10 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
     U_R = math.sqrt(u_R**2 + v_R**2)
 
     # Rudder inflow angle
-    alpha_R = delta - math.atan2(v_R, u_R)
+    if p.delta_prop is not None:
+        alpha_R = delta - p.delta_prop - v_R/u_R
+    else:
+        alpha_R = delta - math.atan2(v_R, u_R)
 
     # Normal force on rudder
     if p.A_R is not None:
