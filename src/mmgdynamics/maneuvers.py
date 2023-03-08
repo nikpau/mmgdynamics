@@ -1,5 +1,5 @@
-import csv
 import math
+from itertools import cycle
 from typing import Optional, Sequence
 
 import matplotlib.pyplot as plt
@@ -7,9 +7,9 @@ import numpy as np
 from matplotlib.colors import to_rgba
 from matplotlib.patches import Patch, Rectangle
 
-import mmgdynamics
 from mmgdynamics import step
 from mmgdynamics.structs import InitialValues, Vessel
+
 
 def turning_maneuver(ivs: InitialValues, vessel: Vessel,
                      time: int, dir: str = "starboard",
@@ -112,10 +112,10 @@ def plot_r(t: list[Sequence[float]]):
     plt.figure(figsize=(16, 10))
     for list in t:
         plt.plot(np.arange(len(list[2])), list[2], linewidth=2.5)
-    plt.xlabel(r"$t(s)$", fontsize=14)
-    plt.ylabel(r"$r(-)$", fontsize=14)
+    plt.xlabel("$t(s)$", fontsize=14)
+    plt.ylabel("$r(-)$", fontsize=14)
     plt.title(
-        r"Yaw rate acceleration $r(-)$ for $\pm 35^{\circ}$ turning maneuver")
+        "Yaw rate acceleration $r(-)$ for $\pm 35^{\circ}$ turning maneuver")
     plt.grid(True)
     # plt.savefig(PLOTDIR+"/"+"r.pdf")
     plt.show()
@@ -142,8 +142,8 @@ def plot_trajecory(t: Sequence[np.ndarray], vessel: Vessel) -> None:
     x, y = np.meshgrid(np.linspace(-5, 5, 20), np.linspace(-2, 4, 20))
     u, v = 0, 1
     plt.quiver(x, y, u, v, scale=100., width=0.001, color="grey")
-    plt.xlabel(r"$y_0/L$", fontsize=14)
-    plt.ylabel(r"$x_0/L$", fontsize=14)
+    plt.xlabel("$y_0/L$", fontsize=14)
+    plt.ylabel("$x_0/L$", fontsize=14)
     plt.axhline(y=0, color='black', linestyle=':')
     plt.axvline(x=0, color='black', linestyle=':')
     plt.axis("equal")
@@ -238,73 +238,280 @@ def zigzag_maneuver(ivs: InitialValues, vessel: Vessel,
         delta_list[i] = delta_list[i] * 180/np.pi
         
 
-    return result, delta_list
+    return plot_zigzag(result, delta_list,vessel, ivs)
 
 
-def plot_zigzag(t: list, delta_list: np.ndarray, vessel: Vessel, ivs: np.ndarray) -> None:
+def plot_zigzag(
+    t: list, delta_list: np.ndarray, vessel: Vessel, ivs: InitialValues) -> None:
     
-    colors = ["#bc6c25","#283618"]
-    ls = ["-.","-"]
+    ls = [(0, (3, 1, 1, 1, 1, 1)),"-"]
+    labels = ["h/d = $\infty$","h/d = 1.2"]
     L = vessel.Lpp
+    delta_max = max(delta_list[0])
 
-    fig = plt.figure(figsize=(10, 4))
-    #fig.patch.set_facecolor("#212529")
-    ax: plt.Axes = fig.add_subplot(1, 1, 1)
+    fig = plt.figure(figsize=(8, 4))
 
     for i,v in enumerate(t):
         plt.plot(
-            np.arange(len(v))*ivs[0]/L, 
+            np.arange(len(v))*ivs.u/L, 
             v, 
-            linewidth=3.5, 
-            color=colors[i],
-            linestyle=ls[1]
+            linewidth=2.5, 
+            color="k",
+            linestyle=ls[i],
+            label = labels[i]
         )
 
     for i,v in enumerate(delta_list):
         plt.plot(
-            np.arange(len(v))*ivs[0]/L, 
+            np.arange(len(v))*ivs.u/L, 
             v, 
-            linewidth=3.5, 
-            color=colors[i],
-            linestyle=ls[0]
+            linewidth=2.5, 
+            color="k",
+            linestyle=ls[i]
         )
 
-    plt.xlabel(r"$t*U_0/L$", fontsize=24)
-    plt.ylabel(r"$Angle [^{\circ}]$", fontsize=24)
-    plt.title(r"$10/10Z$",loc="left")
+    plt.xlabel("$t*U_0/L$", fontsize=18)
+    plt.ylabel("$Angle [^{\circ}]$", fontsize=18)
+    plt.title(f"${int(delta_max)}/-{int(delta_max)}Z$",loc="left")
 
     plt.ylim(-40,40)
-    plt.xlim(-1,28)
+    plt.xlim(0,12)
 
     plt.grid(True,"major")
     plt.grid(True,"minor",linestyle = ":")
     plt.minorticks_on()
 
-    handles, _ = ax.get_legend_handles_labels()
-    shallow = Patch(color=colors[0], 
-                 label=r"h/T = 1.2")
-    deep = Patch(color=colors[1], 
-                 label=r"h/T = $\infty$")
-    
-    handles.append(shallow)
-    handles.append(deep)
-    plt.legend(handles=handles, loc="upper right")
+    plt.legend(loc="upper right")
 
     plt.tight_layout()
-    plt.savefig("zigzag1010.pdf")
+    plt.savefig(f"zigzag{int(delta_max)}{int(delta_max)}.pdf")
 
 
 def free_flow_test(vessel:Vessel, ivs: InitialValues):
 
     fig = plt.figure(figsize=(6,6))
+    ax: plt.Axes = fig.add_subplot(1, 1, 1)
+    plt.xlabel("$y_0/L$", fontsize=14)
+    plt.ylabel("$x_0/L$", fontsize=14)
+
+    def rad(a): return a/180*math.pi
+
+    timestep = 0
+    twopi = 2*math.pi
+
+    # Length and Breadth of the simulated vessel
+    L, B = vessel.Lpp/vessel.Lpp, vessel.B/vessel.Lpp
+
+    ivs_init = np.array([ivs.u,ivs.v,ivs.r])
+    
+    # Define here lists of Rudder angles in degrees 
+    # that are performed by the vessel.
+    delta_list_deep = np.concatenate(
+        [np.array([0.]),
+         np.linspace(0.0, 35, 7),
+         np.full(600-7, 35)]
+    )    
+    delta_list_shallow = np.concatenate(
+        [np.array([0.]),
+         np.linspace(0.0, 35, 7),
+         np.full(1200-7, 35)]
+    )
+    
+    deltas = [delta_list_shallow,delta_list_deep]
+    
+    # A color cycler to color different experiments
+    colors = cycle([
+        "#001219", "#005f73", "#0a9396", 
+        "#94d2bd", "#e9d8a6", "#ee9b00", 
+        "#ca6702", "#bb3e03", "#ae2012", "#9b2226"
+        ])
+    d = vessel.d
+    
+    depths = [d*1.2,None]
+
+    # There must be one list per experiment
+    assert len(depths)==len(deltas)
+    for color,depth,dl in zip(colors,depths,deltas):
+        
+        agx, agy = 0.0, 0.0
+        head = 0.0
+        timestep = 0
+        uvr = ivs_init
+        plt.grid(ls=":")
+        
+        for d in range(len(dl)):
+
+            sol = step(
+                X=uvr,
+                vessel=vessel,
+                psi=head,
+                nps=ivs.nps,
+                delta=rad(dl[d]),
+                fl_psi=None,
+                fl_vel=None,
+                water_depth=depth,
+                dT=1,
+                atol=1e-6,rtol=1e-3
+            )
+
+            timestep += 1
+
+            # Vel in x and y direction (m/s), angular turning rate (rad/s)
+            u, v, r = sol
+
+            # Transform to earth-fixed coordinate system
+
+            head =  (head + r) % twopi
+            vy = math.cos(head) * u - math.sin(head) * v
+            vx = math.sin(head) * u + math.cos(head) * v
+
+            agx += vx/vessel.Lpp
+            agy += vy/vessel.Lpp
+ 
+            anchor = agx - B/2, agy - L/2
+
+            # Set current solution as next initial values
+            uvr = np.hstack(sol)
+
+            # Rectangle of the heading transformed vessel
+            vessel_rect = Rectangle(
+                anchor,
+                width=vessel.B/vessel.Lpp,
+                height=vessel.Lpp/vessel.Lpp,
+                rotation_point="center",
+                angle=((2*math.pi)-head)*180/math.pi,
+                edgecolor=to_rgba(color,1),
+                facecolor = to_rgba(color,0.1)
+            )
+
+            # ADJUST HERE IF YOU WANT TO PLOT ONLY
+            # EVERY NTH DATAPOINT 
+            if timestep == 1 or timestep % 12 == 0:
+                ax.add_patch(vessel_rect)
+                
+            print(timestep,depth,color)
+    
+    plt.xlim(-0.5,5.5)
+    plt.ylim(-1,5)
+    
+    # Unfortunately we must generate our Legend
+    # manually. 
+    # So, for every experiment, add your legend
+    # entry as a Patch() and add it to the legend
+    # handler. PRs for improvements are welcome.
+    handles, _ = ax.get_legend_handles_labels()
+    shallow = Patch(color=colors[0], 
+                 label="h/d = 1.2")
+    deep = Patch(color=colors[1], 
+                 label="h/d = $\infty$")
+    
+    
+    handles.append(deep)
+    handles.append(shallow)
+    plt.legend(handles=handles)
+    
+    plt.savefig("freeflow.pdf")
+
+def current_wind_test(vessel: Vessel, ivs: InitialValues, 
+                      iters: int,fl_psi: float, fl_vel: float,
+                      w_vel: float, beta_w:float) -> None:
+
+    fig = plt.figure()
+    ax: plt.Axes = fig.add_subplot(1, 1, 1)
+    plt.xlabel(r"$x_0$", fontsize=14)
+    plt.ylabel(r"$y_0$", fontsize=14)
+    plt.grid()
+    
+    timestep = 0
+    twopi = 2*math.pi
+
+    agx, agy = 0.0, 0.0
+    head = 0/180*math.pi
+
+    qx, qy = np.linspace(-400, 400, 11), np.linspace(-400, 400, 11)
+
+    # Length and Breadth of the simulated vessel
+    L, B = vessel.Lpp, vessel.B
+    
+    nps = ivs.nps 
+    uvr = np.array([ivs.u,ivs.v,ivs.r])
+    
+    colors = ["#9b2226","#001219"]
+        
+    for _ in range(iters):
+
+        sol = step(
+            X=uvr,
+            vessel=vessel,
+            psi=head,
+            nps=nps,
+            delta=0.0,
+            fl_psi=fl_psi,
+            fl_vel=fl_vel,
+            w_vel=w_vel,
+            beta_w=beta_w,
+            water_depth=None,
+            dT=1,
+            atol=1e-5,rtol=1e-5
+        )
+
+        timestep += 1
+
+        # Vel in x and y direction (m/s), angular turning rate (rad/s)
+        u, v, r = sol
+
+        # Transform to earth-fixed coordinate system
+        head = float((head + r) % twopi)
+        vy = math.cos(head) * u - math.sin(head) * v
+        vx = math.sin(head) * u + math.cos(head) * v
+
+        agx += vx
+        agy += vy
+
+        anchor = agx - B/2, agy - L/2
+        
+        # Set current solution as next initial values
+        uvr = np.hstack(sol)
+        
+        speed = math.sqrt(u**2+v**2)
+        print("Speed: {:.2f}".format(speed),f" | Timestep: {timestep}")
+
+        # Rectangle of the heading transformed vessel
+        vessel_rect = Rectangle(anchor,
+                                width=vessel.B,
+                                height=vessel.Lpp,
+                                rotation_point="center",
+                                angle=(twopi-head)*180/math.pi,
+                                edgecolor=colors[0],
+                                facecolor = to_rgba(colors[0],0.1))
+
+
+        if timestep % 50 == 0:
+            ax.add_patch(vessel_rect)
+
+    ax.quiver(qx, qy,
+                np.full((11, 11), -math.sin(beta_w)),
+                np.full((11, 11), -math.cos(beta_w)),
+                scale=20, headwidth=2)
+
+        #print(timestep)
+    plt.axis("equal")
+    plt.show()
+
+def _depr_turning_test(vessel:Vessel, ivs: InitialValues):
+    """
+    Currently not maintained.
+    """
+
+    fig = plt.figure(figsize=(6,6))
     #fig.patch.set_facecolor("#212529")
     ax: plt.Axes = fig.add_subplot(1, 1, 1)
     
-    plt.xlabel(r"$x_0/L$", fontsize=14)
+    plt.xlabel(r"$y_0/L$", fontsize=14)
     #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/vessel.Lpp)) 
     #ax.xaxis.set_major_formatter(ticks)
     
-    plt.ylabel(r"$y_0/L$", fontsize=14)
+    plt.ylabel(r"$x_0/L$", fontsize=14)
     #ax.yaxis.set_major_formatter(ticks)
 
     
@@ -333,7 +540,7 @@ def free_flow_test(vessel:Vessel, ivs: InitialValues):
     
     deltas = [delta_list_shallow,delta_list_deep]
     
-    colors = ["#bc6c25","#283618"]
+    colors = ["#c1121f","#003049"]
     d = vessel.d
     depths = [d*1.2,None]
 
@@ -393,158 +600,23 @@ def free_flow_test(vessel:Vessel, ivs: InitialValues):
             #           np.full((11, 11), math.sin(fl_psi)),
             #           np.full((11, 11), math.cos(fl_psi)),
             #           scale=20, headwidth=2)
-            if timestep == 0 or timestep % 8 == 0:
+            if timestep == 1 or timestep % 12 == 0:
                 ax.add_patch(vessel_rect)
                 
             print(timestep,depth,color)
     
-    plt.xlim(-0.5,7)
-    plt.ylim(-1,6.5)
+    plt.xlim(-0.5,5.5)
+    plt.ylim(-1,5)
     
     handles, _ = ax.get_legend_handles_labels()
     shallow = Patch(color=colors[0], 
-                 label=r"h/T = 1.2")
+                 label=r"h/d = 1.2")
     deep = Patch(color=colors[1], 
-                 label=r"h/T = $\infty$")
+                 label=r"h/d = $\infty$")
     
-    handles.append(shallow)
+    
     handles.append(deep)
+    handles.append(shallow)
     plt.legend(handles=handles)
     
     plt.savefig("turning_circles.pdf")
-
-def current_wind_test(vessel: Vessel, ivs: InitialValues, 
-                      iters: int,fl_psi: float, fl_vel: float,
-                      w_vel: float, beta_w:float) -> None:
-
-    fig = plt.figure()
-    #fig.patch.set_facecolor("#212529")
-    ax: plt.Axes = fig.add_subplot(1, 1, 1)
-    
-    plt.xlabel(r"$x_0$", fontsize=14)
-    #ticks = ticker.FuncFormatter(lambda x, pos: '{0:g}'.format(x/vessel.Lpp)) 
-    #ax.xaxis.set_major_formatter(ticks)
-    
-    plt.ylabel(r"$y_0$", fontsize=14)
-    #ax.yaxis.set_major_formatter(ticks)
-
-    plt.grid()
-    
-    def rad(a): return a/180*math.pi
-
-    timestep = 0
-    twopi = 2*math.pi
-
-    agx, agy = 0.0, 0.0
-    head = 0/180*math.pi
-
-    qx, qy = np.linspace(-400, 400, 11), np.linspace(-400, 400, 11)
-
-    # Length and Breadth of the simulated vessel
-    L, B = vessel.Lpp, vessel.B
-    
-    nps = ivs.nps 
-    uvr = np.array([ivs.u,ivs.v,ivs.r])
-    
-    colors = ["#9b2226","#001219"]
-        
-    for _ in range(iters):
-
-        sol = step(
-            X=uvr,
-            vessel=vessel,
-            psi=head,
-            nps=nps,
-            delta=0.0,
-            fl_psi=fl_psi,
-            fl_vel=fl_vel,
-            w_vel=w_vel,
-            beta_w=beta_w,
-            water_depth=None,
-            dT=1,
-            atol=1e-5,rtol=1e-5
-        )
-
-        timestep += 1
-
-        # Vel in x and y direction (m/s), angular turning rate (rad/s)
-        u, v, r = sol
-
-        # Transform to earth-fixed coordinate system
-
-        head = float((head + r) % twopi)
-        vy = math.cos(head) * u - math.sin(head) * v
-        vx = math.sin(head) * u + math.cos(head) * v
-
-        agx += vx
-        agy += vy
-
-        anchor = agx - B/2, agy - L/2
-        
-        # Set current solution as next initial values
-        uvr = np.hstack(sol)
-        
-        speed = math.sqrt(u**2+v**2)
-        print("Speed: {:.2f}".format(speed),f" | Timestep: {timestep}")
-
-        # Rectangle of the heading transformed vessel
-        vessel_rect = Rectangle(anchor,
-                                width=vessel.B,
-                                height=vessel.Lpp,
-                                rotation_point="center",
-                                angle=(twopi-head)*180/math.pi,
-                                edgecolor=colors[0],
-                                facecolor = to_rgba(colors[0],0.1))
-
-
-        if timestep % 50 == 0:
-            ax.add_patch(vessel_rect)
-
-    ax.quiver(qx, qy,
-                np.full((11, 11), -math.sin(beta_w)),
-                np.full((11, 11), -math.cos(beta_w)),
-                scale=20, headwidth=2)
-
-        #print(timestep)
-    plt.axis("equal")
-    plt.show()
-
-def static_current_test(vessel: Vessel, ang_list: Sequence[float]) -> None:
-
-    fig = plt.figure()
-    ax: plt.Axes = fig.add_subplot(1, 1, 1)
-    
-    plt.xlabel(r"Angle of attack $\gamma_c$ [deg] for current (relative bow)", fontsize=14)
-
-    plt.grid(linestyle="-.")
-
-    colors = ["#9b2226","#43aa8b","#001219","#005f73","#ee9b00","#ca6702"]
-    cx,cy,cn = [], [], []
-        
-    for angle in ang_list:
-        cx.append(mmgdynamics.dynamics._C_X(angle))
-        cy.append(mmgdynamics.dynamics._C_Y(angle))
-        cn.append(mmgdynamics.dynamics._C_N(angle))
-
-    ax.plot(np.arange(len(ang_list)),cx,c=colors[2],lw=3,label=r"$C_X$")
-    ax.plot(np.arange(len(ang_list)),cy,c=colors[1],lw=3,label=r"$C_Y$")
-    ax.plot(np.arange(len(ang_list)),cn,c=colors[0],lw=3,label=r"$C_N$")
-
-    fossen_plot = []
-
-    with open("wpd_datasets.csv") as csvfile:
-        reader = csv.reader(csvfile,delimiter=",")
-        for row in reader:
-            fossen_plot.append(row)
-
-    cxf = [float(x[1]) for x in fossen_plot]
-    cyf = [float(x[3]) for x in fossen_plot]
-    cnf = [float(x[5]) for x in fossen_plot]
-
-    ax.plot(np.arange(0,181,10),cxf,c=colors[5],lw=3,marker="o",label=r"$C_X$ (experimental)")
-    ax.plot(np.arange(0,181,10),cyf,c=colors[4],lw=3,marker="v",label=r"$C_Y$ (experimental)")
-    ax.plot(np.arange(0,181,10),cnf,c=colors[3],lw=3,marker="s",label=r"$C_N$ (experimental)")
-
-    plt.legend()
-
-    plt.show()
