@@ -108,7 +108,7 @@ def turning_maneuver(ivs: InitialValues, vessel: Vessel,
 
     return res
 
-def plot_r(t: list[Sequence[float]]):
+def plot_r(t: Sequence[Sequence[float]]) -> None:
     plt.figure(figsize=(16, 10))
     for list in t:
         plt.plot(np.arange(len(list[2])), list[2], linewidth=2.5)
