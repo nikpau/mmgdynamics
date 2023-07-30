@@ -382,7 +382,7 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     # Add current water density to dict
     v.rho = rho
 
-    # Masses and Moment of Intertia
+    # Masses and Moment of Inertia
     nondim_M = 0.5 * v.rho * L**2 * d
     nondim_N = 0.5 * v.rho * L**4 * d
     v.m = m * v.rho  # Displacement * water density
@@ -437,10 +437,10 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     if v.t_P is None:
         v.t_P = -0.27
 
-    # Rudder force incease factor
+    # Rudder force increase factor
     v.a_H = 0.627*Cb-0.153  # Quadvlieg (2013)
 
-    # Longituinal acting point of longitudinal force
+    # Longitudinal acting point of longitudinal force
     v.x_H_dash = -0.37  # Khanﬁr et al. (2011)
 
     # Steering resistance deduction factor
