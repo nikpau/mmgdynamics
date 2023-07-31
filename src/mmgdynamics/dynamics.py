@@ -208,7 +208,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
     m = p.displ*p.rho
     I_zG = m*(0.25*p.Lpp)**2
     
-    # Mass matricies
+    # Mass matrices
     M_RB = np.array([[m, 0.0, 0.0],
                     [0.0, m, m * p.x_G],
                     [0.0, m * p.x_G, I_zG]])
