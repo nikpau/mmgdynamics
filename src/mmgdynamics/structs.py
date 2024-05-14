@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Optional, TypeVar
+from typing import Optional
 
 @dataclass
 class Vessel:
@@ -79,6 +79,7 @@ class Vessel:
     gamma_R: Optional[float] = None # Flow straightening coefficient
     A_R_Ld_em: Optional[float] = None # Fraction of moveable Rudder area to length*draft
     f_alpha: Optional[float] = None # Rudder lift gradient coefficient
+    delta_prop: Optional[float] = None
 
 @dataclass
 class MinimalVessel:
@@ -98,11 +99,11 @@ class MinimalVessel:
     t_P: Optional[float] = None # Thrust deduction factor
 
 
-Surge = TypeVar("Surge",bound=float)
-Sway = TypeVar("Sway",bound=float)
-YawRate = TypeVar("YawRate",bound=float)
-RudderAngle = TypeVar("RudderAngle",bound=float)
-RevPerSecond = TypeVar("RevPerSecond",bound=float)
+Surge        = float
+Sway         = float
+YawRate      = float
+RudderAngle  = float
+RevPerSecond = float
 
 @dataclass
 class InitialValues:

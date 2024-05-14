@@ -10,7 +10,7 @@ from .dynamics import _shallow_water_hdm,mmg_dynamics
 class LogicError(Exception):
     pass
 
-__version__ = "1.0.6"
+__version__ = "1.0.7"
 __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
 __all__ = ["step", "pstep"]
 

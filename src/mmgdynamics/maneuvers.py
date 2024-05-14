@@ -1,4 +1,5 @@
 import math
+from itertools import cycle
 from typing import Optional, Sequence
 from numpy.typing import NDArray
 
@@ -102,6 +103,7 @@ def turning_maneuver(ivs: InitialValues, vessel: Vessel,
 
     return res
 
+
 def plot_r(trajectories: Trajectories) -> None:
     """
     Plots a list of yaw rates for a given trajectory.
@@ -116,8 +118,9 @@ def plot_r(trajectories: Trajectories) -> None:
         plt.plot(np.arange(len(t[2])), t[2], linewidth=2.5)
     plt.xlabel(r"$t(s)$", fontsize=14)
     plt.ylabel(r"$r(-)$", fontsize=14)
+
     plt.title(
-        r"Yaw rate acceleration $r(-)$ for $\pm 35^{\circ}$ turning maneuver")
+        "Yaw rate acceleration $r(-)$ for $\pm 35^{\circ}$ turning maneuver")
     plt.grid(True)
     plt.show()
 
@@ -149,8 +152,8 @@ def plot_trajecory(trajectories: Trajectories, vessel: Vessel) -> None:
     x, y = np.meshgrid(np.linspace(-5, 5, 20), np.linspace(-2, 4, 20))
     u, v = 0, 1
     plt.quiver(x, y, u, v, scale=100., width=0.001, color="grey")
-    plt.xlabel(r"$y_0/L$", fontsize=14)
-    plt.ylabel(r"$x_0/L$", fontsize=14)
+    plt.xlabel("$y_0/L$", fontsize=14)
+    plt.ylabel("$x_0/L$", fontsize=14)
     plt.axhline(y=0, color='black', linestyle=':')
     plt.axvline(x=0, color='black', linestyle=':')
     plt.axis("equal")
@@ -253,7 +256,6 @@ def zigzag_maneuver(ivs: InitialValues, vessel: Vessel,
         
     return result, delta_list
 
-
 def plot_zigzag(
     trajectories: Trajectories, 
     delta_list: np.ndarray, 
@@ -263,52 +265,44 @@ def plot_zigzag(
     Plots 
     """
     
-    colors = ["#bc6c25","#283618"]
-    ls = ["-.","-"]
+    ls = [(0, (3, 1, 1, 1, 1, 1)),"-"]
+    labels = ["h/d = $\infty$","h/d = 1.2"]
     L = vessel.Lpp
+    delta_max = max(delta_list[0])
 
-    fig = plt.figure(figsize=(10, 4))
-    #fig.patch.set_facecolor("#212529")
-    ax: plt.Axes = fig.add_subplot(1, 1, 1)
+    fig = plt.figure(figsize=(8, 4))
 
     for i,v in enumerate(trajectories):
         plt.plot(
             np.arange(len(v))*ivs.u/L, 
             v, 
-            linewidth=3.5, 
-            color=colors[i],
-            linestyle=ls[1]
+            linewidth=2.5, 
+            color="k",
+            linestyle=ls[i],
+            label = labels[i]
         )
 
     for i,v in enumerate(delta_list):
         plt.plot(
             np.arange(len(v))*ivs.u/L, 
             v, 
-            linewidth=3.5, 
-            color=colors[i],
-            linestyle=ls[0]
+            linewidth=2.5, 
+            color="k",
+            linestyle=ls[i]
         )
 
-    plt.xlabel(r"$t*U_0/L$", fontsize=24)
-    plt.ylabel(r"$Angle [^{\circ}]$", fontsize=24)
-    plt.title(r"$10/10Z$",loc="left")
+    plt.xlabel("$t*U_0/L$", fontsize=18)
+    plt.ylabel("$Angle [^{\circ}]$", fontsize=18)
+    plt.title(f"${int(delta_max)}/-{int(delta_max)}Z$",loc="left")
 
     plt.ylim(-40,40)
-    plt.xlim(-1,28)
+    plt.xlim(0,12)
 
     plt.grid(True,"major")
     plt.grid(True,"minor",linestyle = ":")
     plt.minorticks_on()
 
-    handles, _ = ax.get_legend_handles_labels()
-    shallow = Patch(color=colors[0], 
-                 label=r"h/T = 1.2")
-    deep = Patch(color=colors[1], 
-                 label=r"h/T = $\infty$")
-    
-    handles.append(shallow)
-    handles.append(deep)
-    plt.legend(handles=handles, loc="upper right")
+    plt.legend(loc="upper right")
 
     plt.tight_layout()
     plt.show()

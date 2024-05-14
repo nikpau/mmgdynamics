@@ -117,7 +117,10 @@ def mmg_dynamics(X: np.ndarray, params: Vessel,
     U_R = math.sqrt(u_R**2 + v_R**2)
 
     # Rudder inflow angle
-    alpha_R = delta - math.atan2(v_R, u_R)
+    if p.delta_prop is not None:
+        alpha_R = delta - p.delta_prop - v_R/u_R
+    else:
+        alpha_R = delta - math.atan2(v_R, u_R)
 
     # Normal force on rudder
     if p.A_R is not None:
@@ -203,7 +206,7 @@ def mmg_dynamics(X: np.ndarray, params: Vessel,
     m = p.displ*p.rho
     I_zG = m*(0.25*p.Lpp)**2
     
-    # Mass matricies
+    # Mass matrices
     M_RB = np.array([[m, 0.0, 0.0],
                     [0.0, m, m * p.x_G],
                     [0.0, m * p.x_G, I_zG]])
@@ -401,7 +404,7 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     # Add current water density to dict
     v.rho = rho
 
-    # Masses and Moment of Intertia
+    # Masses and Moment of Inertia
     nondim_M = 0.5 * v.rho * L**2 * d
     nondim_N = 0.5 * v.rho * L**4 * d
     v.m = m * v.rho  # Displacement * water density
@@ -456,10 +459,10 @@ def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     if v.t_P is None:
         v.t_P = -0.27
 
-    # Rudder force incease factor
+    # Rudder force increase factor
     v.a_H = 0.627*Cb-0.153  # Quadvlieg (2013)
 
-    # Longituinal acting point of longitudinal force
+    # Longitudinal acting point of longitudinal force
     v.x_H_dash = -0.37  # Khanﬁr et al. (2011)
 
     # Steering resistance deduction factor

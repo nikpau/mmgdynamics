@@ -1,6 +1,6 @@
-# L7 model of the KVLCC2 Tanker ship. Originally 320m length, 58m width.
+# L64 model of the KVLCC2 Tanker ship. Originally 320m length, 58m width.
 # Scale of model 1/5
-kvlcc2 = {
+kvlcc2_l64 = {
     "C_b":          0.810, # Block Coeffiient
     "Lpp":          64, # Length over pependiculars (m)
     "B":            11.6, # Overall width
