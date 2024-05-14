@@ -1,4 +1,3 @@
-import json
 import matplotlib
 import mmgdynamics.calibrated_vessels as cvs
 from dataclasses import dataclass
@@ -13,9 +12,10 @@ matplotlib.rc('font', **font)
 """
 In here you find some basic tests to validate the 
     MMG model.
+    Uncomment the desired test and run the script.
     
     Tests:
-        - N° turning tests for either starboard or port direction
+        - 35° turning tests for either starboard or port direction
         - ZigZag test 
     
     Note:
@@ -55,8 +55,8 @@ vessel = Vessel(**cvs.kvlcc2_l64)
 
 iters = 3000
 def test_turning_maneuver():
-    s = turning_maneuver(KVLCC2Inits.l_64, vessel, iters, "port",maxdeg=35, water_depth=None)
-    p = turning_maneuver(KVLCC2Inits.l_64, vessel, iters, "port",maxdeg=35, water_depth=25)
+    s = turning_maneuver(KVLCC2Inits.l_64, vessel, iters, "port", water_depth=None)
+    p = turning_maneuver(KVLCC2Inits.l_64, vessel, iters, "port", water_depth=25)
     plot_trajecory([s,p], vessel)
     plot_r([s,p])
 
