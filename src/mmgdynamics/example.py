@@ -70,5 +70,3 @@ def test_zig_zag():
         max_deg=20,
         wd=[1.2*vessel.d,None]
     )
-# Print the vessel dict to output
-print(json.dumps(vessel.__dict__,sort_keys=True, indent=4))
