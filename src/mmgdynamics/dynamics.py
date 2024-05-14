@@ -19,22 +19,19 @@ __all__ = ["calilbrate"]
 # System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
 
 
-def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel, 
+def mmg_dynamics(X: np.ndarray, params: Vessel, 
                 psi:float,delta: float, nps: float, fl_psi: float, 
-                fl_vel: float,w_vel:float, beta_w: float, dT: float) -> np.ndarray:
+                fl_vel: float, w_vel:float, beta_w: float) -> np.ndarray:
     """System of ODEs after Yasukawa, H., Yoshimura, Y. (2015)
     for the MMG standard model
 
     Args:
-        t (np.ndarray): time
         X (np.ndarray): Initial values
         params (dict):  Vessel dict 
         psi (float): vessel heading in the global frame
         fl_psi (float): Attack angle of current relative
                         longitudinal axis of motion [rad]
         fl_vel (float): Velocity of current [m/s]
-        nps_old (float): propeller rotation last timestep [s⁻¹]
-        delta_old (float): rudder angle last timestep [rad]
 
     Returns:
         np.ndarray: Derivatives of the ODE for the current timestep (mostly for solver)
@@ -235,7 +232,7 @@ def mmg_dynamics(t: np.ndarray, X: np.ndarray, params: Vessel,
 
 
 
-def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
+def _shallow_water_hdm(v: Vessel, water_depth: float) -> Vessel:
     """Correct the hydrodynamic derivatives and
     hydrodynamic masses for shallow water conditions.
 
@@ -325,6 +322,8 @@ def _shallow_water_hdm(v: Vessel, water_depth: float) -> None:
     else:
         v.gamma_R_minus *= cgr1
         v.gamma_R_plus *= cgr1
+        
+    return v
 
 
 def _C_X_wind(g_w, cx=0.9):
