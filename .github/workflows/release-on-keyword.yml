@@ -1,0 +1,42 @@
+name: Create Release on Keyword
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Extract version from commit message
+        id: get_version
+        run: |
+          # Retrieve the commit message of the latest commit
+          COMMIT_MSG=$(git log -1 --pretty=%B)
+          echo "Last commit message: $COMMIT_MSG"
+          # Extract version number if present in the format "release x.y.z"
+          if echo "$COMMIT_MSG" | grep -oP "release \K\d+\.\d+\.\d+" > /dev/null; then
+            VERSION=$(echo "$COMMIT_MSG" | grep -oP "release \K\d+\.\d+\.\d+")
+            echo "release_version=$VERSION" >> $GITHUB_ENV
+            echo "contains_release=true" >> $GITHUB_ENV
+          else
+            echo "contains_release=false" >> $GITHUB_ENV
+          fi
+
+      - name: Create a new GitHub Release
+        if: env.contains_release == 'true'
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.release_version }}
+          release_name: Release ${{ env.release_version }}
+          body: |
+            Automated release based on the commit message: ${{ env.release_version }}
+          draft: false
+          prerelease: false
