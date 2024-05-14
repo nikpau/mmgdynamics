@@ -12,16 +12,65 @@ pip install git+https://github.com/nikpau/mmgdynamics
 
 ## Dynamics
 
-The dynamics of the system can be found in the `dynamics.py` file. The model can be used straight out of the box with any vessel found in the `calibrated_vessels.py` file. If you want to embed this model into your own framework you just need the `step()` function.
+The system's dynamics can be found in the `dynamics.py` file. The model can be used straight out of the box with any vessel in the `calibrated_vessels.py` file. If you want to embed this model into your framework, use the `step()` or the `pstep()` function. The `step()` function takes in initial values of surge, sway, and yaw rate, as well as parameters about the simulated vessel and optionally environmental disturbances such as water depth, wind speed, and direction, current speed, and direction. It returns the raw first derivatives of surge sway and yaw rates, which must be further post-processes. 
+
+If, instead, you want to directly return the new position in the earth-fixed position together with the new surge, sway, and yaw rates, call the `pstep()` function. It additionally takes the global position of the vessel as an input. This function is easy to use and will likely be the starting point for integrating the MMG dynamics into your project. See the example below on how to use the model
+
+```python
+import math
+import mmgdynamics as mmg
+import mmgdynamics.calibrated_vessels as cvs
+import matplotlib.pyplot as plt # Just for demostration
+
+# Load a pre-calibrated vessel
+vessel = mmg.Vessel(**cvs.kvlcc2_l64)
+
+# Let the vessel drive with a rudder angle
+# of 10° for 1000 seconds
+# -------------------------------------
+# Inital position
+pos = [0,0] # x,y [m]
+
+# Initial heading
+psi = 0 # [rad]
+
+# Random initial values (replace these with yours)
+uvr = [3.85, 0, 0] # u,v,r [m/s, m/s, rad/s]
+
+positions = []
+for _ in range(1000):
+    uvr, eta = mmg.pstep(
+        X           = uvr,
+        pos         = pos,
+        vessel      = vessel,
+        dT          = 1,    # 1 second
+        nps         = 4,    # 4 revs per second
+        delta       = 10 * (math.pi / 180), # Convert to radians
+        psi         = psi,  # Heading
+        water_depth = None, # No water depth
+        fl_psi      = None, # No current angle
+        fl_vel      = None, # No current velocity
+        w_vel       = None, # No wind velocity
+        beta_w      = None  # No wind angle
+    )
+    x,y,psi = eta # Unpack new position and heading
+    positions.append([x,y]) # Store the new position
+    pos = [x,y] # Update the position
+    
+# Quick plot of the trajectory
+ps = list(zip(*positions))
+plt.plot(ps[0], ps[1])
+plt.show()
+```
 
 ### Calibrate custom vessel
 
-In order to calibrate a vessel that is not present in the `calibrated_vessels.py` file, you can define a minimal dict with basic information about the vessel and use `calibrate()` to make it usable in the `step()` function. Several empirical formulas will be used to estimate the relevant hydrodynamic derivatives for your vessel and return back a dict which can be used as an input to the `step()` function.
-> Disclaimer: The quality of the empirical estimations for hydrodynamic derivatives vary greatly for different ships. Please consider comprehensive testing before using a custom vessel.
+To calibrate a vessel not present in the `calibrated_vessels.py` file, you can define a minimal dict with basic information about the vessel and use `calibrate()` to make it usable in the `step()` function. Several empirical formulas will be used to estimate the relevant hydrodynamic derivatives for your vessel and return a dict, which can be used as an input to the `step()` function.
+> Disclaimer: The quality of the empirical estimations for hydrodynamic derivatives varies greatly for different ships. Please consider comprehensive testing before using a custom vessel.
 
 #### Calibration process:
 
-Under `src/structs.py` you find the dataclasses responsible for modeling the vessel objects. For using a minmal dict as a vessel, you must define it as seen below and then pass it into the `calibrate()` function which returns a full vessel object
+Under `src/structs.py`, you will find the dataclasses responsible for modeling the vessel objects. For using a minimal dict as a vessel, you must define it as seen below and then pass it into the `calibrate()` function which returns a full vessel object.
 
 The empirical estimations need at least the following information:
 
@@ -57,18 +106,18 @@ The effects of shallow water are incorporated using various semi-empirical formu
 
 ## Examples
 
-You can find common test cases for vessel maeuvering such as the ZigZag or turning maneuver test in the `example.py` file. In there you also find the definition and use of the minimal dict from above.
+You can find common test cases for vessel maneuvering, such as the ZigZag or turning maneuver test, in the `example.py` file.
 
 
 ## Citation
 
-If you use this code in one of your projects or papers, please cite it as follows.
+If you use this code in one of your projects or papers, please cite it as follows:
 
 ```bibtex
 @misc{mmgdynamics,
   author = {Niklas Paulig},
   title = {MMG standard model for ship maneuvering},
-  year = {2022},
+  year = {2024},
   publisher = {GitHub},
   journal = {GitHub Repository},
   howpublished = {\url{https://github.com/nikpau/mmgdynamics}}
