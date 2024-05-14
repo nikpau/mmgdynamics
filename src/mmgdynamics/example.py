@@ -1,25 +1,21 @@
-import json
 import matplotlib
 import numpy as np
 import mmgdynamics.calibrated_vessels as cvs
 
 from mmgdynamics.maneuvers import *
 from mmgdynamics.structs import Vessel
-from mmgdynamics.dynamics import calibrate
 
-matplotlib.rcParams['font.family'] = ["Tahoma", 'sans-serif']
-
-font = {'weight': 'normal',
-        'size': 18}
-
+matplotlib.rcParams['font.family'] = ['sans-serif']
+font = {'weight': 'normal','size': 18}
 matplotlib.rc('font', **font)
 
 
 """In here you find some basic tests to validate the 
     MMG model.
+    Uncomment the desired test and run the script.
     
     Tests:
-        - N° turning tests for either starboard or port direction
+        - 35° turning tests for either starboard or port direction
         - ZigZag test 
     
     Note:
@@ -27,10 +23,8 @@ matplotlib.rc('font', **font)
         or use help(somefunction)
     
 """
-def dtr(x):
-    return np.deg2rad(x)
 
-# Some initial values
+# Initial values for the full scale kvlcc2
 ivs = InitialValues(
     u     = 3.85, # Longitudinal vessel speed [m/s]
     v     = 0.0, # Lateral vessel speed [m/s]
@@ -38,7 +32,7 @@ ivs = InitialValues(
     delta = 0.0, # Rudder angle [rad]
     nps   = 1.05 # Propeller revs [s⁻¹]
 )
-# # Some initial values
+# # Initial values for the 7-meter model
 # ivs = InitialValues(
 #     u     = 1.128, # Longitudinal vessel speed [m/s]
 #     v     = 0.0, # Lateral vessel speed [m/s]
@@ -48,53 +42,22 @@ ivs = InitialValues(
 # )
 
 # Initial values for 1/5 kvlcc2
-# ivs = InitialValues(
-#     u     = 4.0, # Longitudinal vessel speed [m/s]
-#     v     = 0.0, # Lateral vessel speed [m/s]
-#     r     = 0.0, # Yaw rate acceleration [rad/s]
-#     delta = 0.0, # Rudder angle [rad]
-#     nps   = 3.0 # Propeller revs [s⁻¹]
-# )
-
-# Uncomment to calibrate a vessel from the minimal dict above
-#vessel = calibrate(FUb,rho = 1000)
+ivs = InitialValues(
+    u     = 4.0, # Longitudinal vessel speed [m/s]
+    v     = 0.0, # Lateral vessel speed [m/s]
+    r     = 0.0, # Yaw rate acceleration [rad/s]
+    delta = 0.0, # Rudder angle [rad]
+    nps   = 3.0 # Propeller revs [s⁻¹]
+)
 
 # Use a pre-calibrated vessel
-vessel = Vessel(**cvs.kvlcc2_full)
-
-ZIGZAG: bool = False
+vessel = Vessel(**cvs.kvlcc2)
 
 iters = 3000
-# s = turning_maneuver(ivs, vessel, iters, "port",maxdeg=35, water_depth=None)
-# ivs = InitialValues(
-#     u     = 3.85, # Longitudinal vessel speed [m/s]
-#     v     = 0.0, # Lateral vessel speed [m/s]
-#     r     = 0.0, # Yaw rate acceleration [rad/s]
-#     delta = 0.0, # Rudder angle [rad]
-#     nps   = 0.65 # Propeller revs [s⁻¹]
-# )
 
-# p = turning_maneuver(ivs, vessel, iters, "port",maxdeg=35, water_depth=25)
-#q = turning_maneuver(ivs, vessel, iters, "starboard",maxdeg=35, water_depth=8)
-#plot_trajecory([s,p], vessel)
-#plot_r([s,p])
-
-#free_flow_test(vessel, ivs)
-angles = np.arange(180)
-angles = angles/180*np.pi
-current_wind_test(
-    vessel, ivs,
-    iters=4000,
-    fl_psi=dtr(90.0),
-    fl_vel=1.0,
-    w_vel=0.0,
-    beta_w=dtr(90)
-    )
-#static_current_test(vessel,angles)
-
-if ZIGZAG:
-    z, l = zigzag_maneuver(ivs, vessel, dir=1, dps=4.76, max_deg=10,wd=[1.2*vessel.d,None])
-    plot_zigzag(z, l, vessel, ivs)
-
-# Print the vessel dict to output
-print(json.dumps(vessel.__dict__,sort_keys=True, indent=4))
+p = turning_maneuver(ivs, vessel, iters, "port", water_depth=None)
+q = turning_maneuver(ivs, vessel, iters, "port", water_depth=8)
+plot_trajecory([p,q], vessel)
+plot_r([p,q])
+z, l = zigzag_maneuver(ivs, vessel, dir=1, dps=4.76, max_deg=10,wd=[1.2*vessel.d,None])
+plot_zigzag(z, l, vessel, ivs)
