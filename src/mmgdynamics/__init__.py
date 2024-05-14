@@ -2,16 +2,15 @@ import copy
 import numpy as np
 
 from warnings import warn
-from typing import Optional, Any
+from typing import Optional
 
 from .structs import Vessel
-
 from .dynamics import _shallow_water_hdm,mmg_dynamics
 
 class LogicError(Exception):
     pass
 
-__version__ = "1.0.7"
+__version__ = "1.0.6"
 __author__ = "Niklas Paulig <niklas.paulig@tu-dresden.de>"
 __all__ = ["step", "pstep"]
 
@@ -47,7 +46,8 @@ def rotpsi(psi: float) -> np.ndarray:
 def step(*, X: np.ndarray, vessel: Vessel, dT: float, nps: float, 
          delta: float, psi: float, fl_psi: Optional[float] = None,
          fl_vel: Optional[float] = None, w_vel: Optional[float] = None, 
-         beta_w: Optional[float] = None, water_depth: Optional[float] = None) -> Any:
+         beta_w: Optional[float] = None, water_depth: Optional[float] = None
+         ) -> np.ndarray[Nu]:
     """Solve the MMG system for a given vessel for an arbitrarily long timestep
     
     Args:
@@ -69,9 +69,7 @@ def step(*, X: np.ndarray, vessel: Vessel, dT: float, nps: float,
                       attack angle for it. 
 
     Returns:
-        Any: Solver output of two modes:
-            Normal: Return the result of the last solver timestep
-            Debug : Return also all intermediate solver values.
+        Derivatives of u,v and r in the vessel fixed coordinate system
     """
 
     if fl_vel is not None and fl_psi is None:
@@ -94,7 +92,7 @@ def step(*, X: np.ndarray, vessel: Vessel, dT: float, nps: float,
     # Develop equation of motion
     uvr_dot = mmg_dynamics(
         X = X,
-        vessel = sh_vessel if water_depth is not None else vessel,
+        params = sh_vessel if water_depth is not None else vessel,
         nps = nps,
         delta = delta,
         psi = psi,
