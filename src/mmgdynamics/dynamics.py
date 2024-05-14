@@ -1,5 +1,6 @@
 import math
 import numpy as np
+from scipy.optimize import fsolve
 
 from .structs import MinimalVessel, Vessel
 
@@ -346,6 +347,28 @@ def _C_A(*,m_x,m_y,u, vm):
         [[0.0, 0.0, -m_y * vm],
         [0.0, 0.0, m_x * u],
         [0.0, 0.0, 0.0]])
+
+def nps_from_u(u: float, params: Vessel) -> float:
+    """
+    Calculate the propeller revolutions per second given
+    the surge velocity of the vessel.
+    
+    This is a helper function to estimate the propeller
+    revolutions per second based on the surge velocity of
+    the vessel. To ease the calculation, all 
+    environmental factors are set to zero.
+    """
+    # Initial guess
+    nps0 = 2.0
+    
+    # UVR proxy
+    X = np.array([u, 0.0, 0.0])
+    
+    def to_root(nps):
+        return mmg_dynamics(X, params, 0, 0, nps[0], 0, 0, 0, 0)[0]    
+    
+    # Solve for nps
+    return fsolve(to_root, nps0)[0]
 
 def calibrate(v: MinimalVessel, rho: float) -> Vessel:
     """Calculate relevant hydrodynamic derivatives based on a minimal
