@@ -63,7 +63,7 @@ f_Nd     = _shallow_water_correction_factory(alpha=4.720, a=-1.218,   b=-3.050, 
 
 class AbkowitzModel(cmn.Maneuvervable):
     """
-    Stateless wrapper for an Abkowitz-type dynamics model 
+    Wrapper for an Abkowitz-type dynamics model 
     following Yang and el Moctar (2024) for shallow water 
     conditions for inland vessels.
     
